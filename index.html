@@ -568,7 +568,6 @@ async function api(action, params={}) {
 }
 
 async function apiPost(action, body={}) {
-  // ใช้ GET แทน POST เพื่อหลีกเลี่ยงปัญหา CORS ใน Google Sites iframe
   const url = new URL(API);
   url.searchParams.set('action', action);
   Object.entries(body).forEach(([k,v]) => {
@@ -1775,18 +1774,11 @@ async function delTeacher(id,name) {
 async function uploadImageFile(input, targetInputId, previewId) {
   const file = input.files[0];
   if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { toast('รูปภาพต้องไม่เกิน 5MB ค่ะ','error'); return; }
 
-  // ตรวจขนาด — ไม่เกิน 5MB
-  if (file.size > 5 * 1024 * 1024) {
-    toast('รูปภาพต้องไม่เกิน 5MB ค่ะ', 'error');
-    return;
-  }
-
-  // แสดง loading
   const preview = document.getElementById(previewId);
   if (preview) preview.innerHTML = `<div style="display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:var(--text-l);margin-top:.4rem"><i class="fa-solid fa-spinner fa-spin" style="color:var(--pink)"></i> กำลังอัปโหลด...</div>`;
 
-  // แปลงเป็น base64
   const base64Data = await new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = e => resolve(e.target.result.split(',')[1]);
@@ -1794,31 +1786,41 @@ async function uploadImageFile(input, targetInputId, previewId) {
     reader.readAsDataURL(file);
   });
 
-  const r = await apiPost('uploadImage', {
-    fileName: file.name,
-    mimeType: file.type,
-    base64Data,
-  });
+  // ใช้ fetch กับ mode no-cors ไม่ได้อ่าน response ได้
+  // ต้องใช้ form submission แทนสำหรับ cross-origin POST
+  const url = new URL(API);
+  url.searchParams.set('action', 'uploadImage');
+  url.searchParams.set('fileName', file.name);
+  url.searchParams.set('mimeType', file.type);
 
-  if (!r.ok) {
-    toast(r.error || 'อัปโหลดไม่สำเร็จ', 'error');
-    if (preview) preview.innerHTML = '';
-    return;
+  try {
+    // สร้าง form และ submit ผ่าน hidden iframe เพื่อหลีกเลี่ยง CORS
+    // แต่วิธีที่ดีกว่าคือ encode base64 แล้วส่งผ่าน URL chunks
+    // สำหรับ GitHub Pages → Apps Script ต้องใช้ JSONP หรือ Apps Script CORS headers
+
+    // วิธีแก้: ใช้ fetch ปกติ แต่ Apps Script ต้อง return CORS headers
+    const formData = new URLSearchParams();
+    formData.append('action', 'uploadImage');
+    formData.append('fileName', file.name);
+    formData.append('mimeType', file.type);
+    formData.append('base64Data', base64Data);
+
+    const res = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: formData.toString(),
+    });
+    const r = await res.json();
+
+    if (!r.ok) { toast(r.error||'อัปโหลดไม่สำเร็จ','error'); if (preview) preview.innerHTML=''; return; }
+    const targetInput = document.getElementById(targetInputId);
+    if (targetInput) targetInput.value = r.url;
+    if (preview) preview.innerHTML = `<div style="margin-top:.5rem"><img src="${r.url}" style="max-width:100%;max-height:140px;border-radius:var(--radius-xs);object-fit:cover;border:1.5px solid var(--gray-200)"><span style="font-size:.72rem;color:var(--mint-d);display:block;margin-top:.2rem"><i class="fa-solid fa-check"></i> อัปโหลดแล้ว</span></div>`;
+    toast('อัปโหลดรูปสำเร็จ ✓','success');
+  } catch(e) {
+    toast('อัปโหลดไม่สำเร็จ: '+e.message,'error');
+    if (preview) preview.innerHTML='';
   }
-
-  // ใส่ URL ลงในช่อง input
-  const targetInput = document.getElementById(targetInputId);
-  if (targetInput) targetInput.value = r.url;
-
-  // แสดง preview
-  if (preview) {
-    preview.innerHTML = `
-      <div style="margin-top:.5rem;position:relative;display:inline-block">
-        <img src="${r.url}" style="max-width:100%;max-height:140px;border-radius:var(--radius-xs);object-fit:cover;border:1.5px solid var(--gray-200)">
-        <span style="position:absolute;top:4px;right:4px;background:var(--mint-l);color:var(--mint-d);font-size:.72rem;padding:1px 6px;border-radius:10px;font-weight:600"><i class="fa-solid fa-check"></i> อัปโหลดแล้ว</span>
-      </div>`;
-  }
-  toast('อัปโหลดรูปสำเร็จ ✓', 'success');
 }
 
 // ============================================================
