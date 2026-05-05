@@ -1,0 +1,2058 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบติดตามภาระงานนักเรียนชั้นประถมศึกษาปีที่ 3</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* ========== RESET & BASE ========== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --pink:   #F8A4C8; --pink-l: #FDE8F3; --pink-d: #C1527F;
+  --mint:   #A8E6CF; --mint-l: #E4F8F0; --mint-d: #3D9970;
+  --sky:    #A8D8EA; --sky-l:  #E2F4FA; --sky-d:  #2E7EA1;
+  --lav:    #C9B8F0; --lav-l:  #EDE8FC; --lav-d:  #6A4BB5;
+  --peach:  #FFD4A8; --peach-l:#FFF3E6; --peach-d:#C07020;
+  --yellow: #FFF0A0; --yellow-l:#FFFCE0; --yellow-d:#998800;
+  --red-l:  #FFE4E4; --red-d:  #C0392B;
+  --gray-50:#F9F9F7; --gray-100:#F0EEE9; --gray-200:#DDD9D0;
+  --gray-400:#B0AA9E; --gray-600:#7A7469; --gray-800:#3D3A34;
+  --text:   #2D2B26; --text-m: #5A5650; --text-l: #8C8880;
+  --white:  #FFFFFF;
+  --radius: 14px; --radius-s: 8px; --radius-xs: 5px;
+  --shadow: 0 2px 12px rgba(0,0,0,.08);
+  --shadow-m: 0 4px 20px rgba(0,0,0,.12);
+  --trans: .18s ease;
+  --api: ''; /* จะถูก set โดย JS */
+}
+html{font-size:16px;scroll-behavior:smooth;height:100%}
+body{font-family:'Sarabun','Noto Sans Thai',sans-serif;background:var(--gray-50);color:var(--text);min-height:100%;line-height:1.6;margin:0;padding:0}
+button{cursor:pointer;font-family:inherit;border:none;outline:none}
+input,select,textarea{font-family:inherit;font-size:1rem}
+a{text-decoration:none;color:inherit}
+img{max-width:100%}
+
+/* ========== UTILITIES ========== */
+.hidden{display:none!important}
+.flex{display:flex}.flex-col{flex-direction:column}.items-center{align-items:center}.justify-between{justify-content:space-between}.justify-center{justify-content:center}.gap-1{gap:.5rem}.gap-2{gap:1rem}.gap-3{gap:1.5rem}.wrap{flex-wrap:wrap}
+.grid-2{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem}
+.grid-3{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem}
+.w100{width:100%}.text-center{text-align:center}.text-right{text-align:right}
+.mt-1{margin-top:.5rem}.mt-2{margin-top:1rem}.mt-3{margin-top:1.5rem}
+.mb-1{margin-bottom:.5rem}.mb-2{margin-bottom:1rem}
+.bold{font-weight:600}.text-sm{font-size:.85rem}.text-xs{font-size:.75rem}
+.text-muted{color:var(--text-l)}.text-m{color:var(--text-m)}
+
+/* ========== SCROLLBAR ========== */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--gray-200);border-radius:4px}
+
+/* ========== TOAST ========== */
+#toast{position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;display:flex;flex-direction:column;gap:.5rem;pointer-events:none}
+.toast-msg{background:#2D2B26;color:#fff;padding:.7rem 1.2rem;border-radius:var(--radius-s);font-size:.9rem;max-width:300px;animation:slideIn .2s ease;box-shadow:var(--shadow-m)}
+.toast-msg.success{background:var(--mint-d)}.toast-msg.error{background:var(--red-d)}.toast-msg.info{background:var(--sky-d)}
+@keyframes slideIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* ========== MODAL ========== */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:800;display:flex;align-items:center;justify-content:center;padding:1rem;overflow-y:auto}
+.modal{background:var(--white);border-radius:var(--radius);padding:1.5rem;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-m)}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem}
+.modal-head h3{font-size:1.1rem;font-weight:600}
+.modal-close{background:var(--gray-100);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--text-m);transition:var(--trans)}
+.modal-close:hover{background:var(--gray-200)}
+
+/* ========== FORM ========== */
+.form-group{margin-bottom:1rem}
+.form-group label{display:block;font-size:.88rem;font-weight:500;margin-bottom:.4rem;color:var(--text-m)}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:.65rem .9rem;border:1.5px solid var(--gray-200);border-radius:var(--radius-s);font-size:.95rem;color:var(--text);background:var(--white);transition:var(--trans)}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--pink);box-shadow:0 0 0 3px var(--pink-l)}
+.form-group textarea{resize:vertical;min-height:80px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+@media(max-width:480px){.form-row{grid-template-columns:1fr}}
+
+/* ========== BUTTONS ========== */
+.btn{display:inline-flex;align-items:center;gap:.4rem;padding:.6rem 1.2rem;border-radius:var(--radius-s);font-size:.92rem;font-weight:500;transition:var(--trans);white-space:nowrap}
+.btn-primary{background:var(--pink);color:var(--white)}
+.btn-primary:hover{background:var(--pink-d);transform:translateY(-1px)}
+.btn-mint{background:var(--mint);color:var(--mint-d)}
+.btn-mint:hover{background:var(--mint-d);color:var(--white);transform:translateY(-1px)}
+.btn-sky{background:var(--sky);color:var(--sky-d)}
+.btn-sky:hover{background:var(--sky-d);color:var(--white)}
+.btn-lav{background:var(--lav);color:var(--lav-d)}
+.btn-lav:hover{background:var(--lav-d);color:var(--white)}
+.btn-peach{background:var(--peach);color:var(--peach-d)}
+.btn-peach:hover{background:var(--peach-d);color:var(--white)}
+.btn-ghost{background:transparent;color:var(--text-m);border:1.5px solid var(--gray-200)}
+.btn-ghost:hover{background:var(--gray-100)}
+.btn-danger{background:var(--red-l);color:var(--red-d)}
+.btn-danger:hover{background:var(--red-d);color:var(--white)}
+.btn-sm{padding:.4rem .8rem;font-size:.82rem}
+.btn-xs{padding:.25rem .6rem;font-size:.78rem;border-radius:var(--radius-xs)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
+
+/* ========== BADGE / STATUS ========== */
+.badge{display:inline-flex;align-items:center;gap:.25rem;padding:.18rem .6rem;border-radius:20px;font-size:.78rem;font-weight:500}
+.badge-graded{background:var(--mint-l);color:var(--mint-d)}
+.badge-checking{background:var(--yellow-l);color:var(--yellow-d)}
+.badge-not_submitted{background:var(--red-l);color:var(--red-d)}
+
+/* ========== TOP BAR ========== */
+#topbar{background:var(--white);border-bottom:1px solid var(--gray-200);padding:.8rem 1.5rem;display:flex;align-items:center;gap:1rem;position:sticky;top:0;z-index:100;box-shadow:0 1px 8px rgba(0,0,0,.06)}
+#topbar .logo{width:42px;height:42px;border-radius:10px;object-fit:contain}
+#topbar .title-area{flex:1}
+#topbar .site-title{font-size:1rem;font-weight:700;color:var(--text);line-height:1.2}
+#topbar .site-sub{font-size:.78rem;color:var(--text-l)}
+#topbar .user-info{display:flex;align-items:center;gap:.5rem;background:var(--gray-50);padding:.4rem .8rem;border-radius:var(--radius-s);font-size:.88rem}
+#topbar .user-info i{color:var(--pink-d)}
+@media(max-width:600px){#topbar .site-sub{display:none}#topbar{padding:.7rem 1rem}}
+
+/* ========== MAIN WRAPPER ========== */
+#app{min-height:100vh}
+.page{display:none!important}
+.page.active{display:block!important}
+.container{max-width:1100px;margin:0 auto;padding:1.5rem}
+@media(max-width:600px){.container{padding:1rem}}
+
+/* ========== LOGIN PAGE ========== */
+#page-login{
+  display:flex;align-items:center;justify-content:center;
+  min-height:calc(100vh - 60px);
+  padding:2rem 1rem;
+  background:linear-gradient(135deg,var(--pink-l) 0%,var(--sky-l) 50%,var(--mint-l) 100%);
+  width:100%;
+}
+html,body{height:100%;margin:0;padding:0;width:100%}
+.login-box{background:var(--white);border-radius:var(--radius);padding:2rem;width:100%;max-width:440px;box-shadow:var(--shadow-m);margin:0 auto}
+.login-logo{text-align:center;margin-bottom:1.5rem}
+.login-logo img{width:70px;height:70px;border-radius:16px;object-fit:contain}
+.login-logo h1{font-size:1.1rem;font-weight:700;margin-top:.7rem;color:var(--text)}
+.login-logo p{font-size:.82rem;color:var(--text-l);margin-top:.2rem}
+.login-tabs{display:flex;gap:.5rem;margin-bottom:1.5rem;background:var(--gray-100);border-radius:var(--radius-s);padding:.3rem}
+.login-tab{flex:1;padding:.5rem;border-radius:var(--radius-xs);font-size:.9rem;font-weight:500;color:var(--text-m);background:transparent;transition:var(--trans);text-align:center}
+.login-tab.active{background:var(--white);color:var(--text);box-shadow:var(--shadow)}
+
+/* ========== CARD ========== */
+.card{background:var(--white);border-radius:var(--radius);padding:1.2rem;box-shadow:var(--shadow);transition:var(--trans)}
+.card:hover{box-shadow:var(--shadow-m);transform:translateY(-2px)}
+.card-flat{background:var(--white);border-radius:var(--radius);padding:1.2rem;box-shadow:var(--shadow)}
+
+/* ========== PROGRESS BAR ========== */
+.progress-wrap{background:var(--gray-100);border-radius:20px;height:10px;overflow:hidden}
+.progress-bar{height:100%;border-radius:20px;transition:width .5s ease;min-width:4px}
+.progress-bar.green{background:linear-gradient(90deg,var(--mint),var(--mint-d))}
+.progress-bar.pink{background:linear-gradient(90deg,var(--pink),var(--pink-d))}
+.progress-bar.sky{background:linear-gradient(90deg,var(--sky),var(--sky-d))}
+
+/* ========== SUBJECT CARD ========== */
+.subject-card{background:var(--white);border-radius:var(--radius);padding:1.2rem;box-shadow:var(--shadow);cursor:pointer;transition:var(--trans);border-top:4px solid transparent}
+.subject-card:hover{box-shadow:var(--shadow-m);transform:translateY(-2px)}
+.subject-card.color-0{border-top-color:var(--pink-d)}
+.subject-card.color-1{border-top-color:var(--mint-d)}
+.subject-card.color-2{border-top-color:var(--sky-d)}
+.subject-card.color-3{border-top-color:var(--lav-d)}
+.subject-card.color-4{border-top-color:var(--peach-d)}
+.subject-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:.8rem}
+.subject-icon.color-0{background:var(--pink-l);color:var(--pink-d)}
+.subject-icon.color-1{background:var(--mint-l);color:var(--mint-d)}
+.subject-icon.color-2{background:var(--sky-l);color:var(--sky-d)}
+.subject-icon.color-3{background:var(--lav-l);color:var(--lav-d)}
+.subject-icon.color-4{background:var(--peach-l);color:var(--peach-d)}
+
+/* ========== TABLE ========== */
+.tbl-wrap{overflow-x:auto;border-radius:var(--radius-s)}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+thead th{background:var(--gray-100);padding:.7rem .9rem;text-align:left;font-weight:600;font-size:.82rem;color:var(--text-m);white-space:nowrap}
+tbody td{padding:.65rem .9rem;border-bottom:1px solid var(--gray-100);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--gray-50)}
+.score-input{width:70px;padding:.3rem .5rem;border:1.5px solid var(--gray-200);border-radius:var(--radius-xs);text-align:center;font-size:.9rem;transition:var(--trans)}
+.score-input:focus{outline:none;border-color:var(--mint-d);background:var(--mint-l)}
+.status-select{padding:.3rem .5rem;border:1.5px solid var(--gray-200);border-radius:var(--radius-xs);font-size:.82rem;background:var(--white)}
+
+/* ========== MANAGE TABS ========== */
+.manage-tabs{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.5rem}
+.manage-tab{padding:.5rem 1rem;border-radius:var(--radius-s);font-size:.88rem;font-weight:500;color:var(--text-m);background:var(--gray-100);transition:var(--trans)}
+.manage-tab.active{background:var(--pink);color:var(--white)}
+.manage-tab:hover:not(.active){background:var(--gray-200)}
+
+/* ========== SECTION HEADER ========== */
+.sec-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem}
+.sec-title{font-size:1.1rem;font-weight:700;color:var(--text);display:flex;align-items:center;gap:.5rem}
+.sec-title i{color:var(--pink-d)}
+
+/* ========== BREADCRUMB ========== */
+.breadcrumb{display:flex;align-items:center;gap:.4rem;font-size:.85rem;color:var(--text-l);margin-bottom:1.2rem;flex-wrap:wrap}
+.breadcrumb span{color:var(--text-l)}.breadcrumb a{color:var(--pink-d);cursor:pointer}
+.breadcrumb a:hover{text-decoration:underline}
+
+/* ========== LOADER ========== */
+.loader{display:flex;align-items:center;justify-content:center;padding:3rem;color:var(--text-l)}
+.loader i{animation:spin 1s linear infinite;font-size:1.5rem;color:var(--pink)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ========== STAT BOX ========== */
+.stat-box{background:var(--white);border-radius:var(--radius);padding:1rem 1.2rem;box-shadow:var(--shadow);text-align:center}
+.stat-num{font-size:2rem;font-weight:700;line-height:1.1}
+.stat-label{font-size:.82rem;color:var(--text-l);margin-top:.2rem}
+
+/* ========== ASSIGNMENT LIST ========== */
+.asn-item{display:flex;align-items:center;gap:1rem;background:var(--white);border-radius:var(--radius-s);padding:.8rem 1rem;margin-bottom:.5rem;cursor:pointer;transition:var(--trans);border:1.5px solid var(--gray-100)}
+.asn-item:hover{border-color:var(--pink);box-shadow:var(--shadow)}
+.asn-num{width:32px;height:32px;border-radius:8px;background:var(--pink-l);color:var(--pink-d);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:.88rem;flex-shrink:0}
+.asn-info{flex:1;min-width:0}
+.asn-title{font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.asn-meta{font-size:.78rem;color:var(--text-l);margin-top:.1rem}
+
+/* ========== STUDENT STATUS ITEM ========== */
+.stu-asn-item{display:flex;align-items:center;gap:1rem;padding:.8rem;border-radius:var(--radius-s);background:var(--gray-50);margin-bottom:.5rem;cursor:pointer;transition:var(--trans)}
+.stu-asn-item:hover{background:var(--pink-l)}
+.stu-asn-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.stu-asn-icon.graded{background:var(--mint-l);color:var(--mint-d)}
+.stu-asn-icon.checking{background:var(--yellow-l);color:var(--yellow-d)}
+.stu-asn-icon.not_submitted{background:var(--red-l);color:var(--red-d)}
+
+/* ========== RESPONSIVE ========== */
+@media(max-width:768px){
+  .grid-2,.grid-3{grid-template-columns:1fr}
+  table{font-size:.82rem}
+  thead th,tbody td{padding:.5rem .6rem}
+  .score-input{width:56px}
+}
+@media(max-width:480px){
+  .btn{padding:.5rem .9rem;font-size:.85rem}
+  .login-box{padding:1.5rem 1rem}
+}
+
+/* ========== MONSTER GARDEN ========== */
+.garden-section{background:var(--white);border-radius:var(--radius);padding:1.2rem;box-shadow:var(--shadow);margin-bottom:1rem}
+.garden-tabs{display:flex;gap:.4rem;margin-bottom:1rem}
+.garden-tab{padding:.3rem .8rem;border-radius:20px;font-size:.82rem;font-weight:500;border:1.5px solid var(--gray-200);background:transparent;color:var(--text-m);cursor:pointer;transition:var(--trans)}
+.garden-tab.active{background:var(--pink-l);color:var(--pink-d);border-color:var(--pink)}
+.garden-field{background:#EAF3DE;border-radius:var(--radius-s);padding:1rem;min-height:130px;display:flex;flex-wrap:wrap;align-items:flex-end;gap:.6rem;position:relative}
+.garden-field-empty{width:100%;text-align:center;color:#639922;font-size:.85rem;opacity:.7;padding-top:1.5rem}
+.mon-item{text-align:center;animation:monPop .35s cubic-bezier(.34,1.56,.64,1)}
+@keyframes monPop{from{transform:scale(0) rotate(-10deg);opacity:0}to{transform:scale(1) rotate(0deg);opacity:1}}
+.mon-emoji{font-size:2rem;display:block;line-height:1.1;cursor:pointer;transition:transform .15s}
+.mon-emoji:hover{transform:scale(1.2) rotate(5deg)}
+.mon-label{font-size:.65rem;color:#27500A;margin-top:.1rem;max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.egg-hatch-bar{background:var(--gray-100);border-radius:20px;height:8px;overflow:hidden;flex:1}
+.egg-hatch-fill{height:100%;border-radius:20px;background:var(--pink-d);transition:width .6s ease}
+.mon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:.6rem}
+.mon-card{background:var(--gray-50);border-radius:var(--radius-s);padding:.6rem .4rem;text-align:center;border:1.5px solid var(--gray-100)}
+.mon-card.unlocked{border-color:var(--pink);background:var(--pink-l)}
+.mon-card.locked{opacity:.35}
+/* Teacher garden overview */
+.stu-garden-row{display:flex;align-items:center;gap:.8rem;padding:.6rem 0;border-bottom:1px solid var(--gray-100);cursor:pointer;transition:var(--trans)}
+.stu-garden-row:hover{background:var(--gray-50);border-radius:var(--radius-xs);padding-left:.4rem}
+.stu-garden-row:last-child{border-bottom:none}
+.stu-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:600;flex-shrink:0}
+.stu-mon-preview{display:flex;gap:2px;flex-wrap:wrap;flex:1}
+.mon-count-badge{background:var(--pink-l);color:var(--pink-d);font-size:.75rem;padding:.1rem .5rem;border-radius:20px;font-weight:600;white-space:nowrap}
+.ind-tag{display:inline-flex;align-items:center;gap:.3rem;padding:.25rem .65rem;background:var(--lav-l);color:var(--lav-d);border-radius:20px;font-size:.78rem;font-weight:500;margin:.15rem}
+
+/* ========== MEDIA PREVIEW ========== */
+.media-preview{border-radius:var(--radius-s);overflow:hidden;margin-bottom:.8rem;border:1px solid var(--gray-200)}
+.media-preview img{width:100%;display:block;max-height:240px;object-fit:cover}
+.link-preview{display:flex;align-items:center;gap:.6rem;padding:.7rem 1rem;background:var(--sky-l);border-radius:var(--radius-s);color:var(--sky-d);font-size:.88rem;font-weight:500;cursor:pointer;transition:var(--trans)}
+.link-preview:hover{background:var(--sky-d);color:var(--white)}
+
+/* ========== FILTER BAR ========== */
+.filter-bar{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin-bottom:1.2rem}
+.filter-bar select{padding:.45rem .8rem;border:1.5px solid var(--gray-200);border-radius:var(--radius-s);font-size:.88rem;background:var(--white);color:var(--text)}
+
+/* ========== EMPTY STATE ========== */
+.empty-state{text-align:center;padding:3rem 1rem;color:var(--text-l)}
+.empty-state i{font-size:2.5rem;margin-bottom:.8rem;opacity:.4}
+.empty-state p{font-size:.95rem}
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- TOP BAR (hidden on login) -->
+<div id="topbar" class="hidden">
+  <img src="https://img2.pic.in.th/Logo_AWNN_color_gardient_English.png" alt="โลโก้โรงเรียน" class="logo" onerror="this.style.display='none'">
+  <div class="title-area">
+    <div class="site-title">ระบบติดตามภาระงานนักเรียนชั้นประถมศึกษาปีที่ 3</div>
+    <div class="site-sub">ภาคเรียนที่ 1/2569</div>
+  </div>
+  <div class="user-info">
+    <i class="fa-solid fa-circle-user"></i>
+    <span id="topbar-name">-</span>
+    <button class="btn btn-ghost btn-xs" onclick="logout()" style="margin-left:.5rem"><i class="fa-solid fa-right-from-bracket"></i></button>
+  </div>
+</div>
+
+<!-- ===== LOGIN PAGE ===== -->
+<div id="page-login" class="page active">
+  <div class="login-box">
+    <div class="login-logo">
+      <img src="https://img2.pic.in.th/Logo_AWNN_color_gardient_English.png" alt="โลโก้โรงเรียน" style="width:90px;height:90px;object-fit:contain;border-radius:12px" onerror="this.style.display='none'">
+      <h1>ระบบติดตามภาระงานนักเรียน<br>ชั้นประถมศึกษาปีที่ 3</h1>
+      <p>ภาคเรียนที่ 1/2569</p>
+    </div>
+    <div class="login-tabs">
+      <button class="login-tab active" onclick="switchLoginTab('teacher')"><i class="fa-solid fa-chalkboard-user"></i> ครูผู้สอน</button>
+      <button class="login-tab" onclick="switchLoginTab('student')"><i class="fa-solid fa-user-graduate"></i> นักเรียน</button>
+    </div>
+    <div id="login-teacher">
+      <div class="form-group">
+        <label><i class="fa-solid fa-user"></i> ชื่อผู้ใช้</label>
+        <input type="text" id="t-user" placeholder="กรอกชื่อผู้ใช้" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label><i class="fa-solid fa-lock"></i> รหัสผ่าน</label>
+        <input type="password" id="t-pass" placeholder="กรอกรหัสผ่าน" autocomplete="current-password">
+      </div>
+      <button class="btn btn-primary w100 mt-2" onclick="doTeacherLogin()"><i class="fa-solid fa-right-to-bracket"></i> เข้าสู่ระบบ</button>
+    </div>
+    <div id="login-student" class="hidden">
+      <div class="form-group">
+        <label><i class="fa-solid fa-id-card"></i> รหัสนักเรียน</label>
+        <input type="text" id="s-code" placeholder="กรอกรหัสนักเรียน">
+      </div>
+      <button class="btn btn-primary w100 mt-2" onclick="doStudentLogin()"><i class="fa-solid fa-right-to-bracket"></i> เข้าสู่ระบบ</button>
+    </div>
+    <p class="text-center text-xs text-muted mt-2">หากมีปัญหาในการเข้าสู่ระบบ กรุณาติดต่อครูผู้สอน</p>
+    <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--gray-100);display:flex;align-items:center;justify-content:center;gap:.8rem">
+      <img src="https://img1.pic.in.th/images/3a76fe90687870c494cbc236b0aeaa3c.png" alt="โลโก้ครู" style="width:48px;height:48px;border-radius:10px;object-fit:contain" onerror="this.style.display='none'">
+      <span class="text-xs text-muted">จัดทำระบบโดย<br><span style="font-weight:600;color:var(--text-m)">ครูฝนฝน อารดา รัตนนภาลัย</span></span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TEACHER PAGES ===== -->
+<div id="page-teacher" class="page">
+  <div class="container">
+    <!-- NAV TABS -->
+    <div class="manage-tabs mt-1 mb-2" id="teacher-nav-tabs">
+      <button class="manage-tab active" onclick="showTeacherTab('dashboard')"><i class="fa-solid fa-gauge"></i> Dashboard</button>
+      <button class="manage-tab" id="tab-homeroom" onclick="showTeacherTab('homeroom')"><i class="fa-solid fa-house-chimney-user"></i> ประจำชั้น</button>
+      <button class="manage-tab" onclick="showTeacherTab('manage')"><i class="fa-solid fa-sliders"></i> จัดการข้อมูล</button>
+      <button class="manage-tab hidden" id="tab-teachers" onclick="showTeacherTab('teachers')"><i class="fa-solid fa-users-gear"></i> จัดการครู</button>
+    </div>
+
+    <!-- ===== HOMEROOM DASHBOARD ===== -->
+    <div id="tt-homeroom" class="hidden">
+      <div class="sec-header">
+        <div class="sec-title"><i class="fa-solid fa-house-chimney-user"></i> ภาพรวมห้อง <span id="homeroom-cls-name" style="color:var(--pink-d)"></span></div>
+      </div>
+      <div id="homeroom-content"><div class="loader"><i class="fa-solid fa-spinner"></i></div></div>
+    </div>
+
+    <!-- ===== TEACHER DASHBOARD ===== -->
+    <div id="tt-dashboard">
+      <div id="t-dash-home">
+        <div class="sec-header">
+          <div class="sec-title"><i class="fa-solid fa-chart-pie"></i> รายวิชาทั้งหมด</div>
+          <div class="filter-bar">
+            <select id="filter-cls" onchange="renderTeacherDashboard()">
+              <option value="">ทุกห้องเรียน</option>
+            </select>
+          </div>
+        </div>
+        <div id="t-subject-cards" class="grid-3"><div class="loader"><i class="fa-solid fa-spinner"></i></div></div>
+      </div>
+
+      <!-- Subject detail view -->
+      <div id="t-subject-detail" class="hidden">
+        <div class="breadcrumb">
+          <a onclick="backToTeacherDash()"><i class="fa-solid fa-house"></i> Dashboard</a>
+          <span>›</span>
+          <span id="t-sub-breadcrumb">รายวิชา</span>
+        </div>
+        <div class="card-flat mb-2">
+          <div class="sec-header">
+            <div class="sec-title"><i class="fa-solid fa-book"></i> <span id="t-sub-title">-</span></div>
+            <div class="filter-bar">
+              <select id="filter-cls-sub" onchange="loadSubjectDetail()">
+                <option value="">ทุกห้องเรียน</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.7rem;margin-bottom:1rem" id="t-sub-stats"></div>
+          <div class="progress-wrap"><div class="progress-bar green" id="t-sub-progress-bar" style="width:0%"></div></div>
+          <div class="text-xs text-muted mt-1" id="t-sub-progress-label"></div>
+        </div>
+
+        <div class="sec-header">
+          <div class="sec-title"><i class="fa-solid fa-list-check"></i> ภาระงาน</div>
+        </div>
+        <div id="t-asn-list"></div>
+
+        <!-- Assignment scoring view -->
+        <div id="t-asn-detail" class="hidden">
+          <div class="breadcrumb mt-2">
+            <a onclick="backToSubjectDetail()"><i class="fa-solid fa-arrow-left"></i> กลับ</a>
+            <span>›</span>
+            <span id="t-asn-breadcrumb">ภาระงาน</span>
+          </div>
+          <div class="card-flat mb-2">
+            <div id="t-asn-meta"></div>
+          </div>
+          <div class="card-flat">
+            <div class="sec-header">
+              <div class="sec-title"><i class="fa-solid fa-pen-to-square"></i> ให้คะแนนนักเรียน</div>
+              <div class="flex gap-1">
+                <button class="btn btn-mint btn-sm" onclick="exportExcel()"><i class="fa-solid fa-file-excel"></i> Excel</button>
+                <button class="btn btn-peach btn-sm" onclick="exportPDF()"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+              </div>
+            </div>
+            <div class="tbl-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>รหัส</th>
+                    <th>ชื่อ</th>
+                    <th>ห้อง</th>
+                    <th>สถานะ</th>
+                    <th>คะแนน</th>
+                    <th>หมายเหตุ</th>
+                    <th>บันทึก</th>
+                  </tr>
+                </thead>
+                <tbody id="score-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== MANAGE PANEL ===== -->
+    <div id="tt-manage" class="hidden">
+      <div class="manage-tabs" id="manage-inner-tabs">
+        <button class="manage-tab active" onclick="showManageTab('classrooms')"><i class="fa-solid fa-school"></i> ห้องเรียน</button>
+        <button class="manage-tab" onclick="showManageTab('subjects')"><i class="fa-solid fa-book-open"></i> วิชา</button>
+        <button class="manage-tab" onclick="showManageTab('students')"><i class="fa-solid fa-users"></i> นักเรียน</button>
+        <button class="manage-tab" onclick="showManageTab('assignments')"><i class="fa-solid fa-clipboard-list"></i> ภาระงาน</button>
+      </div>
+      <div id="manage-content"></div>
+    </div>
+
+    <!-- ===== TEACHERS PANEL (admin only) ===== -->
+    <div id="tt-teachers" class="hidden">
+      <div id="teachers-content"><div class="loader"><i class="fa-solid fa-spinner"></i></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== STUDENT PAGE ===== -->
+<div id="page-student" class="page">
+  <div class="container">
+    <div id="stu-home">
+      <!-- Monster Garden -->
+      <div class="garden-section">
+        <div class="garden-tabs">
+          <button class="garden-tab active" onclick="switchGardenTab('garden',this)">🌿 สวนของฉัน</button>
+          <button class="garden-tab" onclick="switchGardenTab('collection',this)">📖 สะสม</button>
+        </div>
+        <div id="garden-tab-garden">
+          <div class="garden-field" id="my-garden-field">
+            <div class="garden-field-empty">ส่งงานเพื่อฟักไข่มอนสเตอร์!</div>
+          </div>
+          <div id="egg-hatch-info" class="hidden" style="display:flex;align-items:center;gap:.8rem;margin-top:.8rem">
+            <span style="font-size:1.8rem">🥚</span>
+            <div style="flex:1">
+              <div class="text-sm bold" id="egg-hatch-label">ส่งงานอีก X ชิ้นจะได้มอนสเตอร์ใหม่!</div>
+              <div style="display:flex;align-items:center;gap:.5rem;margin-top:.3rem">
+                <div class="egg-hatch-bar"><div class="egg-hatch-fill" id="egg-hatch-fill" style="width:0%"></div></div>
+                <span class="text-xs text-muted" id="egg-hatch-count"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="garden-tab-collection" class="hidden">
+          <div class="mon-grid" id="mon-collection-grid"></div>
+        </div>
+      </div>
+      <div class="sec-header">
+        <div class="sec-title"><i class="fa-solid fa-graduation-cap"></i> รายวิชาของฉัน</div>
+      </div>
+      <div id="stu-subject-cards" class="grid-3"><div class="loader"><i class="fa-solid fa-spinner"></i></div></div>
+    </div>
+    <div id="stu-subject-detail" class="hidden">
+      <div class="breadcrumb">
+        <a onclick="backToStudentHome()"><i class="fa-solid fa-house"></i> หน้าหลัก</a>
+        <span>›</span>
+        <span id="stu-sub-breadcrumb">รายวิชา</span>
+      </div>
+      <div class="card-flat mb-2">
+        <div class="sec-title mb-2"><i class="fa-solid fa-chart-simple"></i> ความคืบหน้าของฉัน</div>
+        <div class="progress-wrap"><div class="progress-bar pink" id="stu-progress-bar" style="width:0%"></div></div>
+        <div class="text-xs text-muted mt-1" id="stu-progress-label"></div>
+      </div>
+      <div class="sec-title mb-2"><i class="fa-solid fa-list-check"></i> ภาระงานทั้งหมด</div>
+      <div id="stu-asn-list"></div>
+
+      <!-- Assignment preview modal trigger -->
+      <div id="stu-asn-preview" class="hidden">
+        <div class="breadcrumb mt-2">
+          <a onclick="backToStuSubject()"><i class="fa-solid fa-arrow-left"></i> กลับ</a>
+          <span>›</span>
+          <span id="stu-asn-breadcrumb">ภาระงาน</span>
+        </div>
+        <div class="card-flat">
+          <div id="stu-asn-detail-content"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODALS ===== -->
+<div id="modal-overlay" class="modal-overlay hidden" onclick="closeModal(event)">
+  <div class="modal" id="modal-box">
+    <div class="modal-head">
+      <h3 id="modal-title">-</h3>
+      <button class="modal-close" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- ===== FOOTER ===== -->
+<div id="app-footer" class="hidden" style="background:var(--white);border-top:1px solid var(--gray-100);padding:.8rem 1.5rem;display:flex;align-items:center;justify-content:center;gap:.8rem">
+  <img src="https://img1.pic.in.th/images/3a76fe90687870c494cbc236b0aeaa3c.png" alt="โลโก้ครู" style="width:40px;height:40px;border-radius:10px;object-fit:contain" onerror="this.style.display='none'">
+  <span style="font-size:.8rem;color:var(--text-l);line-height:1.4">จัดทำระบบโดย<br><span style="font-weight:600;color:var(--text-m)">ครูฝนฝน อารดา รัตนนภาลัย</span></span>
+</div>
+
+<script>
+// ============================================================
+//  CONFIG — ใส่ URL ของ Apps Script Web App ที่นี่
+// ============================================================
+const API = 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+
+// ============================================================
+//  STATE
+// ============================================================
+let state = {
+  role: null,
+  teacher: null,
+  student: null,
+  classrooms: [],
+  subjects: [],
+  currentSubjectId: null,
+  currentAssignmentId: null,
+  currentStudentSubjectId: null,
+  dashData: null,
+  asnDetail: null,
+  manageTab: 'classrooms',
+};
+
+const SUBJECT_ICONS = ['fa-book','fa-calculator','fa-flask','fa-globe','fa-music','fa-palette','fa-code','fa-dumbbell'];
+const COLORS = ['color-0','color-1','color-2','color-3','color-4'];
+const STATUS_LABELS = { graded:'ตรวจแล้ว', checking:'กำลังตรวจ', not_submitted:'ยังไม่ส่ง' };
+const STATUS_ICONS  = { graded:'fa-circle-check', checking:'fa-clock-rotate-left', not_submitted:'fa-circle-xmark' };
+
+// ============================================================
+//  API
+// ============================================================
+async function api(action, params={}) {
+  const url = new URL(API);
+  url.searchParams.set('action', action);
+  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+  try {
+    const res = await fetch(url.toString());
+    return await res.json();
+  } catch(e) {
+    return { ok:false, error: e.message };
+  }
+}
+
+async function apiPost(action, body={}) {
+  // ใช้ GET แทน POST เพื่อหลีกเลี่ยงปัญหา CORS ใน Google Sites iframe
+  const url = new URL(API);
+  url.searchParams.set('action', action);
+  Object.entries(body).forEach(([k,v]) => {
+    if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
+  });
+  try {
+    const res = await fetch(url.toString());
+    return await res.json();
+  } catch(e) {
+    return { ok:false, error: e.message };
+  }
+}
+
+// ============================================================
+//  TOAST
+// ============================================================
+function toast(msg, type='info', dur=3000) {
+  const el = document.createElement('div');
+  el.className = `toast-msg ${type}`;
+  el.textContent = msg;
+  document.getElementById('toast').appendChild(el);
+  setTimeout(() => el.remove(), dur);
+}
+
+// ============================================================
+//  MODAL
+// ============================================================
+function openModal(title, bodyHtml) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = bodyHtml;
+  document.getElementById('modal-overlay').classList.remove('hidden');
+}
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modal-overlay')) return;
+  document.getElementById('modal-overlay').classList.add('hidden');
+}
+function closeModalDirect() {
+  document.getElementById('modal-overlay').classList.add('hidden');
+}
+
+// ============================================================
+//  AUTH
+// ============================================================
+function switchLoginTab(tab) {
+  document.getElementById('login-teacher').classList.toggle('hidden', tab!=='teacher');
+  document.getElementById('login-student').classList.toggle('hidden', tab!=='student');
+  document.getElementById('btn-tab-teacher').classList.toggle('active', tab==='teacher');
+  document.getElementById('btn-tab-student').classList.toggle('active', tab==='student');
+}
+
+async function doTeacherLogin() {
+  const username = document.getElementById('t-user').value.trim();
+  const password = document.getElementById('t-pass').value.trim();
+  if (!username||!password) return toast('กรุณากรอกข้อมูลให้ครบ','error');
+  toast('กำลังเข้าสู่ระบบ...','info');
+  const r = await api('teacherLogin',{username,password});
+  if (!r.ok) return toast(r.error,'error');
+  state.role = 'teacher';
+  state.teacher = r.teacher;
+  showPage('page-teacher');
+  document.getElementById('topbar-name').textContent = r.teacher.name;
+  initTeacher();
+}
+
+async function doStudentLogin() {
+  const code = document.getElementById('s-code').value.trim();
+  if (!code) return toast('กรุณากรอกรหัสนักเรียน','error');
+  toast('กำลังเข้าสู่ระบบ...','info');
+  const r = await api('studentLogin',{student_code:code});
+  if (!r.ok) return toast(r.error,'error');
+  state.role = 'student';
+  state.student = r.student;
+  showPage('page-student');
+  document.getElementById('topbar-name').textContent = r.student.name;
+  initStudent();
+}
+
+function logout() {
+  state = { role:null,teacher:null,student:null,classrooms:[],subjects:[],currentSubjectId:null,currentAssignmentId:null,dashData:null,asnDetail:null,manageTab:'classrooms' };
+  showPage('page-login');
+  document.getElementById('topbar').classList.add('hidden');
+}
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => {
+    p.classList.remove('active');
+    p.style.display = 'none';
+  });
+  const target = document.getElementById(id);
+  target.classList.add('active');
+  target.style.display = 'block';
+  const isLogin = id === 'page-login';
+  const topbar = document.getElementById('topbar');
+  const footer = document.getElementById('app-footer');
+  if (isLogin) {
+    topbar.classList.add('hidden'); topbar.style.display = 'none';
+    if (footer) { footer.classList.add('hidden'); footer.style.display = 'none'; }
+  } else {
+    topbar.classList.remove('hidden'); topbar.style.display = 'flex';
+    if (footer) { footer.classList.remove('hidden'); footer.style.display = 'flex'; }
+  }
+  try { window.scrollTo({ top: 0, behavior: 'instant' }); } catch(e) {}
+  try { document.body.scrollTop = 0; document.documentElement.scrollTop = 0; } catch(e) {}
+  try { window.parent.scrollTo({ top: 0, behavior: 'smooth' }); } catch(e) {}
+}
+
+// ============================================================
+//  TEACHER TABS
+// ============================================================
+function showTeacherTab(tab) {
+  const tabs = ['dashboard','homeroom','manage','teachers'];
+  const panels = { dashboard:'tt-dashboard', homeroom:'tt-homeroom', manage:'tt-manage', teachers:'tt-teachers' };
+  tabs.forEach(t => {
+    const panel = document.getElementById(panels[t]);
+    if (panel) panel.classList.add('hidden');
+  });
+  document.getElementById(panels[tab])?.classList.remove('hidden');
+  // update active tab button
+  document.querySelectorAll('#teacher-nav-tabs .manage-tab').forEach(b => b.classList.remove('active'));
+  const tabMap = { dashboard:0, homeroom:1, manage:2, teachers:3 };
+  const btns = document.querySelectorAll('#teacher-nav-tabs .manage-tab');
+  if (btns[tabMap[tab]]) btns[tabMap[tab]].classList.add('active');
+  if (tab === 'manage') renderManage();
+  if (tab === 'homeroom') renderHomeroomDashboard();
+  if (tab === 'teachers') renderTeachersManage();
+}
+
+// ============================================================
+//  TEACHER DASHBOARD
+// ============================================================
+async function initTeacher() {
+  const r = await api('getClassrooms');
+  state.classrooms = r.data || [];
+  const sel = document.getElementById('filter-cls');
+  sel.innerHTML = '<option value="">ทุกห้องเรียน</option>' +
+    state.classrooms.map(c=>`<option value="${c.classroom_id}">${c.name}</option>`).join('');
+
+  const r2 = await api('getSubjects',{teacher_id:state.teacher.teacher_id});
+  state.subjects = r2.data || [];
+
+  // แสดง/ซ่อน tab ตาม role
+  const role = state.teacher.role || 'teacher';
+  const homeroomTab = document.getElementById('tab-homeroom');
+  const teachersTab = document.getElementById('tab-teachers');
+  // ซ่อน homeroom ถ้าไม่มีห้อง
+  if (!state.teacher.homeroom_classroom_id) {
+    homeroomTab?.classList.add('hidden');
+  } else {
+    homeroomTab?.classList.remove('hidden');
+    document.getElementById('homeroom-cls-name').textContent = state.teacher.homeroom_classroom_name;
+  }
+  // แสดง จัดการครู เฉพาะ admin
+  if (role === 'admin') {
+    teachersTab?.classList.remove('hidden');
+  } else {
+    teachersTab?.classList.add('hidden');
+  }
+
+  renderTeacherDashboard();
+}
+
+async function renderTeacherDashboard() {
+  const r = await api('getTeacherDashboard',{teacher_id:state.teacher.teacher_id});
+  if (!r.ok) return;
+  state.dashData = r;
+  const cls = document.getElementById('filter-cls').value;
+  const el = document.getElementById('t-subject-cards');
+  if (!r.subjects.length) {
+    el.innerHTML = `<div class="empty-state"><i class="fa-solid fa-book-open"></i><p>ยังไม่มีวิชาในระบบ ไปที่ "จัดการข้อมูล" เพื่อเพิ่มวิชา</p></div>`;
+    return;
+  }
+  el.innerHTML = r.subjects.map((s,i)=>`
+    <div class="subject-card ${COLORS[i%5]}" onclick="openSubjectDetail('${s.subject_id}')">
+      <div class="subject-icon ${COLORS[i%5]}"><i class="fa-solid ${SUBJECT_ICONS[i%8]}"></i></div>
+      <div class="bold mb-1">${s.subject_name}</div>
+      <div class="text-xs text-muted mb-2">${s.subject_code} &nbsp;·&nbsp; ${s.assignment_count} ภาระงาน</div>
+      <div class="progress-wrap"><div class="progress-bar green" style="width:${s.progress_pct}%"></div></div>
+      <div class="flex justify-between text-xs text-muted mt-1"><span>ความคืบหน้า</span><span>${s.progress_pct}%</span></div>
+      <div class="flex gap-1 mt-2" onclick="event.stopPropagation()">
+        <button class="btn btn-mint btn-xs w100" onclick="exportExcelById('${s.subject_id}','${s.subject_name}')"><i class="fa-solid fa-file-excel"></i> Excel</button>
+        <button class="btn btn-peach btn-xs w100" onclick="exportPDFById('${s.subject_id}','${s.subject_name}')"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+      </div>
+    </div>`).join('');
+}
+
+async function openSubjectDetail(subjectId) {
+  state.currentSubjectId = subjectId;
+  const sub = (state.dashData?.subjects||state.subjects).find(s=>s.subject_id===subjectId);
+  if (!sub) return;
+  document.getElementById('t-dash-home').classList.add('hidden');
+  document.getElementById('t-subject-detail').classList.remove('hidden');
+  document.getElementById('t-asn-detail').classList.add('hidden');
+  document.getElementById('t-sub-breadcrumb').textContent = sub.subject_name;
+  document.getElementById('t-sub-title').textContent = sub.subject_name;
+
+  // populate classroom filter for subject
+  const sel = document.getElementById('filter-cls-sub');
+  sel.innerHTML = '<option value="">ทุกห้องเรียน</option>' +
+    state.classrooms.map(c=>`<option value="${c.classroom_id}">${c.name}</option>`).join('');
+
+  loadSubjectDetail();
+}
+
+async function loadSubjectDetail() {
+  const clsId = document.getElementById('filter-cls-sub').value;
+  const clsName = clsId
+    ? (state.classrooms.find(c=>c.classroom_id===clsId)?.name || 'ห้องที่เลือก')
+    : 'ทุกห้องเรียน';
+
+  // แสดง loading + ชื่อห้องที่กำลังโหลด
+  const statsEl = document.getElementById('t-sub-stats');
+  statsEl.innerHTML = `<div style="grid-column:1/-1;display:flex;align-items:center;gap:.5rem;color:var(--text-l);font-size:.88rem"><i class="fa-solid fa-spinner fa-spin" style="color:var(--pink)"></i> กำลังโหลดข้อมูล ${clsName}...</div>`;
+  document.getElementById('t-sub-progress-bar').style.width = '0%';
+  document.getElementById('t-sub-progress-label').textContent = '';
+  document.getElementById('t-asn-list').innerHTML = `<div class="loader"><i class="fa-solid fa-spinner"></i></div>`;
+
+  const r = await api('getClassProgress',{subject_id:state.currentSubjectId, classroom_id:clsId});
+  if (!r.ok) return;
+
+  const total = r.students.length * r.assignments.length;
+  const submitted = r.students.reduce((s,st)=>s+st.graded+st.checking,0);
+  const pct = total>0?Math.round((submitted/total)*100):0;
+
+  document.getElementById('t-sub-progress-bar').style.width = pct+'%';
+  document.getElementById('t-sub-progress-label').textContent = `ส่งแล้ว ${submitted} / ${total} งาน (${pct}%)`;
+
+  const graded = r.students.reduce((s,st)=>s+st.graded,0);
+  const checking = r.students.reduce((s,st)=>s+st.checking,0);
+  const notSub = r.students.reduce((s,st)=>s+st.not_submitted,0);
+
+  // แสดง badge ห้องที่กำลังดูอยู่
+  const clsBadge = `<div style="grid-column:1/-1;display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem">
+    <span style="background:var(--pink-l);color:var(--pink-d);padding:.2rem .8rem;border-radius:20px;font-size:.82rem;font-weight:600">
+      <i class="fa-solid fa-location-dot"></i> กำลังดู: ${clsName}
+    </span>
+    <span class="text-xs text-muted">${r.students.length} คน</span>
+  </div>`;
+
+  statsEl.innerHTML = clsBadge + `
+    <div class="stat-box"><div class="stat-num" style="color:var(--mint-d)">${graded}</div><div class="stat-label">ตรวจแล้ว</div></div>
+    <div class="stat-box"><div class="stat-num" style="color:var(--yellow-d)">${checking}</div><div class="stat-label">กำลังตรวจ</div></div>
+    <div class="stat-box"><div class="stat-num" style="color:var(--red-d)">${notSub}</div><div class="stat-label">ยังไม่ส่ง</div></div>
+    <div class="stat-box"><div class="stat-num" style="color:var(--sky-d)">${r.students.length}</div><div class="stat-label">นักเรียน</div></div>`;
+
+  // Assignment list
+  const r2 = await api('getAssignments',{subject_id:state.currentSubjectId});
+  const asns = r2.data||[];
+  document.getElementById('t-asn-list').innerHTML = asns.length
+    ? asns.map((a,i)=>`
+        <div class="asn-item" onclick="openAssignmentDetail('${a.assignment_id}')">
+          <div class="asn-num">${i+1}</div>
+          <div class="asn-info">
+            <div class="asn-title">${a.title}</div>
+            <div class="asn-meta">คะแนนเต็ม ${a.max_score} คะแนน ${a.due_date?'&nbsp;·&nbsp; กำหนดส่ง '+a.due_date:''}</div>
+          </div>
+          <i class="fa-solid fa-chevron-right text-muted"></i>
+        </div>`).join('')
+    : `<div class="empty-state"><i class="fa-solid fa-clipboard-list"></i><p>ยังไม่มีภาระงาน</p></div>`;
+
+  // toast แจ้งเตือน
+  toast(`โหลด ${clsName} เสร็จแล้ว — ${r.students.length} คน`, 'success', 2000);
+}
+
+async function openAssignmentDetail(asnId) {
+  state.currentAssignmentId = asnId;
+  const clsId = document.getElementById('filter-cls-sub').value;
+  const r = await api('getAssignmentDetail',{assignment_id:asnId, classroom_id:clsId});
+  if (!r.ok) return;
+  state.asnDetail = r;
+  document.getElementById('t-asn-detail').classList.remove('hidden');
+  document.getElementById('t-asn-breadcrumb').textContent = r.assignment.title;
+
+  // Meta
+  const inds = r.indicators.map(ind=>`<span class="ind-tag"><i class="fa-solid fa-tag"></i>${ind.indicator_text} (${ind.max_score})</span>`).join('');
+  let mediaHtml = '';
+  if (r.assignment.image_url) mediaHtml += `<div class="media-preview"><img src="${r.assignment.image_url}" alt="ตัวอย่างงาน"></div>`;
+  if (r.assignment.link_url) mediaHtml += `<div class="link-preview" onclick="window.open('${r.assignment.link_url}','_blank')"><i class="fa-solid fa-link"></i>${r.assignment.link_url}</div>`;
+  document.getElementById('t-asn-meta').innerHTML = `
+    <div class="sec-title mb-1"><i class="fa-solid fa-clipboard-check"></i> ${r.assignment.title}</div>
+    <div class="text-sm text-muted mb-2">${r.assignment.description||''} ${r.assignment.due_date?'&nbsp;·&nbsp; กำหนดส่ง: '+r.assignment.due_date:''} &nbsp;·&nbsp; คะแนนเต็ม ${r.assignment.max_score}</div>
+    ${inds?`<div class="mb-2">${inds}</div>`:''}
+    ${mediaHtml}`;
+
+  renderScoreTable(r.rows, r.assignment);
+  document.getElementById('t-asn-detail').scrollIntoView({behavior:'smooth'});
+}
+
+function renderScoreTable(rows, asn) {
+  document.getElementById('score-tbody').innerHTML = rows.map((s,i)=>`
+    <tr id="row-${s.student_id}">
+      <td>${i+1}</td>
+      <td><span class="text-xs">${s.student_code}</span></td>
+      <td>${s.name}</td>
+      <td><span class="text-xs">${s.classroom_name}</span></td>
+      <td>
+        <select class="status-select" id="stat-${s.student_id}" onchange="onScoreChange('${s.student_id}')">
+          <option value="not_submitted" ${s.status==='not_submitted'?'selected':''}>ยังไม่ส่ง</option>
+          <option value="checking" ${s.status==='checking'?'selected':''}>กำลังตรวจ</option>
+          <option value="graded" ${s.status==='graded'?'selected':''}>ตรวจแล้ว</option>
+        </select>
+      </td>
+      <td><input type="number" class="score-input" id="sc-${s.student_id}" value="${s.score}" min="0" max="${asn.max_score}" placeholder="0" onchange="onScoreChange('${s.student_id}')" onkeydown="if(event.key==='Enter')saveScore('${s.student_id}')"></td>
+      <td><input type="text" style="width:120px;padding:.3rem .5rem;border:1.5px solid var(--gray-200);border-radius:var(--radius-xs);font-size:.82rem" id="note-${s.student_id}" value="${s.note}" placeholder="หมายเหตุ" onkeydown="if(event.key==='Enter')saveScore('${s.student_id}')"></td>
+      <td><button class="btn btn-mint btn-xs" id="save-${s.student_id}" onclick="saveScore('${s.student_id}')"><i class="fa-solid fa-floppy-disk"></i></button></td>
+    </tr>`).join('');
+}
+
+function onScoreChange(sid) {
+  document.getElementById('save-'+sid).style.background='var(--peach)';
+}
+
+async function saveScore(sid) {
+  const status = document.getElementById('stat-'+sid).value;
+  const score  = document.getElementById('sc-'+sid).value;
+  const note   = document.getElementById('note-'+sid).value;
+  const btn    = document.getElementById('save-'+sid);
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+  const r = await apiPost('setScore',{
+    student_id: sid,
+    assignment_id: state.currentAssignmentId,
+    status, score, note,
+    graded_by: state.teacher?.name||'',
+  });
+  btn.disabled = false;
+  if (r.ok) {
+    btn.innerHTML = '<i class="fa-solid fa-check"></i>';
+    btn.style.background = 'var(--mint)';
+    toast('บันทึกสำเร็จ','success',1500);
+    setTimeout(()=>{ btn.innerHTML='<i class="fa-solid fa-floppy-disk"></i>'; btn.style.background=''; },2000);
+  } else {
+    btn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+    btn.style.background = 'var(--red-l)';
+    toast(r.error||'เกิดข้อผิดพลาด','error');
+  }
+}
+
+function backToTeacherDash() {
+  document.getElementById('t-dash-home').classList.remove('hidden');
+  document.getElementById('t-subject-detail').classList.add('hidden');
+}
+function backToSubjectDetail() {
+  document.getElementById('t-asn-detail').classList.add('hidden');
+}
+
+// ============================================================
+//  EXPORT
+// ============================================================
+async function exportExcel() {
+  await exportExcelById(state.currentSubjectId);
+}
+async function exportExcelById(subjectId, subjectName) {
+  toast('กำลังดึงข้อมูล...','info');
+  const r = await api('exportScores',{subject_id: subjectId || state.currentSubjectId});
+  if (!r.ok) return toast('ไม่สามารถดึงข้อมูล','error');
+  const wb = XLSX.utils.book_new();
+  const maxCollect = r.max_collect || 100;
+  const classrooms = [...new Set(r.rows.map(row=>row.classroom||'ไม่ระบุห้อง'))];
+  classrooms.forEach(cls => {
+    const clsRows = r.rows.filter(row=>(row.classroom||'ไม่ระบุห้อง')===cls);
+    const hdr = ['รหัสนักเรียน','ชื่อ','ห้อง',...r.assignments.map(a=>a.title),`รวมดิบ (/${r.total_max_raw})`,`คะแนนเก็บ (/${maxCollect})`];
+    const data = [hdr, ...clsRows.map(row=>[
+      row.student_code, row.name, row.classroom,
+      ...r.assignments.map(a=>row[a.title]!==''?row[a.title]:'-'),
+      row.total_raw, row.total_scaled
+    ])];
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    ws['!cols'] = hdr.map((_,i)=>({wch: i<3?16:12}));
+    XLSX.utils.book_append_sheet(wb, ws, cls.substring(0,31));
+  });
+  const hdrAll = ['รหัสนักเรียน','ชื่อ','ห้อง',...r.assignments.map(a=>a.title),`รวมดิบ (/${r.total_max_raw})`,`คะแนนเก็บ (/${maxCollect})`];
+  const dataAll = [hdrAll, ...r.rows.map(row=>[
+    row.student_code, row.name, row.classroom,
+    ...r.assignments.map(a=>row[a.title]!==''?row[a.title]:'-'),
+    row.total_raw, row.total_scaled
+  ])];
+  const wsAll = XLSX.utils.aoa_to_sheet(dataAll);
+  wsAll['!cols'] = hdrAll.map((_,i)=>({wch: i<3?16:12}));
+  XLSX.utils.book_append_sheet(wb, wsAll, 'รวมทุกห้อง');
+  XLSX.writeFile(wb, `คะแนน_${subjectName||r.subject?.subject_name||'วิชา'}.xlsx`);
+  toast('ดาวน์โหลด Excel สำเร็จ ✓','success');
+}
+
+async function exportPDF() {
+  await exportPDFById(state.currentSubjectId);
+}
+async function exportPDFById(subjectId, subjectName) {
+  toast('กำลังเตรียม PDF...','info');
+  const r = await api('exportScores',{subject_id: subjectId || state.currentSubjectId});
+  if (!r.ok) return toast('ไม่สามารถดึงข้อมูล','error');
+  const maxCollect = r.max_collect || 100;
+  const win = window.open('','_blank');
+  const hdr = ['#','รหัส','ชื่อ','ห้อง',...r.assignments.map(a=>a.title),`รวมดิบ`,`คะแนนเก็บ (/${maxCollect})`];
+  const rows = r.rows.map((row,i)=>`<tr><td>${i+1}</td><td>${row.student_code}</td><td>${row.name}</td><td>${row.classroom}</td>${r.assignments.map(a=>`<td>${row[a.title]!==''?row[a.title]:'-'}</td>`).join('')}<td>${row.total_raw}</td><td><b>${row.total_scaled}</b></td></tr>`).join('');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>คะแนน ${subjectName||r.subject?.subject_name}</title>
+  <style>body{font-family:sans-serif;padding:1rem;font-size:11px}h2{margin-bottom:.3rem;font-size:14px}p{margin:.2rem 0 .8rem;color:#666;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:.3rem .4rem;text-align:center}th{background:#f5f5f5;font-weight:600}tr:nth-child(even){background:#fafafa}td:nth-child(3){text-align:left}@media print{body{padding:0}}</style>
+  </head><body>
+  <h2>คะแนน: ${subjectName||r.subject?.subject_name} | คะแนนเก็บ ${maxCollect} คะแนน</h2>
+  <p>ผู้สอน: ${state.teacher?.name} &nbsp;|&nbsp; คะแนนเต็มรวม: ${r.total_max_raw} &nbsp;|&nbsp; ออกเมื่อ: ${new Date().toLocaleDateString('th-TH')}</p>
+  <table><thead><tr>${hdr.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>
+  <p style="margin-top:.5rem;font-size:10px;color:#999">* คะแนนเก็บ = (คะแนนรวมดิบ ÷ ${r.total_max_raw}) × ${maxCollect}</p>
+  </body></html>`);
+  win.document.close();
+  setTimeout(()=>win.print(),500);
+}
+
+// ============================================================
+//  MANAGE
+// ============================================================
+function showManageTab(tab) {
+  state.manageTab = tab;
+  document.querySelectorAll('#tt-manage .manage-tabs .manage-tab').forEach((b,i)=>b.classList.toggle('active',['classrooms','subjects','students','assignments'][i]===tab));
+  renderManage();
+}
+
+async function renderManage() {
+  const el = document.getElementById('manage-content');
+  el.innerHTML = `<div class="loader"><i class="fa-solid fa-spinner"></i></div>`;
+  if (state.manageTab==='classrooms') await renderManageClassrooms(el);
+  if (state.manageTab==='subjects')   await renderManageSubjects(el);
+  if (state.manageTab==='students')   await renderManageStudents(el);
+  if (state.manageTab==='assignments')await renderManageAssignments(el);
+}
+
+async function renderManageClassrooms(el) {
+  const r = await api('getClassrooms');
+  const rows = (r.data||[]).map(c=>`
+    <tr><td>${c.name}</td><td>${c.level}</td><td>${c.room}</td>
+    <td>
+      <button class="btn btn-ghost btn-xs" onclick="editClassroom('${c.classroom_id}','${c.name}','${c.level}','${c.room}')"><i class="fa-solid fa-pen"></i></button>
+      <button class="btn btn-danger btn-xs ms-1" onclick="delClassroom('${c.classroom_id}','${c.name}')"><i class="fa-solid fa-trash"></i></button>
+    </td></tr>`).join('');
+  el.innerHTML = `
+    <div class="card-flat">
+      <div class="sec-header"><div class="sec-title"><i class="fa-solid fa-school"></i> ห้องเรียน</div>
+        <button class="btn btn-primary btn-sm" onclick="addClassroomModal()"><i class="fa-solid fa-plus"></i> เพิ่มห้อง</button>
+      </div>
+      <div class="tbl-wrap"><table><thead><tr><th>ชื่อ</th><th>ระดับ</th><th>ห้อง</th><th>จัดการ</th></tr></thead><tbody>${rows||'<tr><td colspan="4" class="text-center text-muted">ยังไม่มีข้อมูล</td></tr>'}</tbody></table></div>
+    </div>`;
+}
+
+function addClassroomModal() {
+  openModal('เพิ่มห้องเรียน',`
+    <div class="form-group"><label>ชื่อห้อง (ใช้แสดง)</label><input id="mc-name" placeholder="เช่น ม.2/1"></div>
+    <div class="form-row">
+      <div class="form-group"><label>ระดับชั้น</label><input id="mc-level" placeholder="เช่น ม.2"></div>
+      <div class="form-group"><label>ห้อง</label><input id="mc-room" placeholder="เช่น 1"></div>
+    </div>
+    <button class="btn btn-primary w100 mt-1" onclick="submitAddClassroom()"><i class="fa-solid fa-floppy-disk"></i> บันทึก</button>`);
+}
+async function submitAddClassroom() {
+  const name=document.getElementById('mc-name').value.trim();
+  const level=document.getElementById('mc-level').value.trim();
+  const room=document.getElementById('mc-room').value.trim();
+  if (!name) return toast('กรุณาใส่ชื่อห้อง','error');
+  const r=await apiPost('addClassroom',{name,level,room});
+  if (r.ok){closeModalDirect();toast('เพิ่มห้องเรียนสำเร็จ','success');renderManage();initTeacher();}
+  else toast(r.error,'error');
+}
+function editClassroom(id,name,level,room) {
+  openModal('แก้ไขห้องเรียน',`
+    <div class="form-group"><label>ชื่อห้อง</label><input id="mc-name" value="${name}"></div>
+    <div class="form-row">
+      <div class="form-group"><label>ระดับชั้น</label><input id="mc-level" value="${level}"></div>
+      <div class="form-group"><label>ห้อง</label><input id="mc-room" value="${room}"></div>
+    </div>
+    <button class="btn btn-primary w100 mt-1" onclick="submitEditClassroom('${id}')"><i class="fa-solid fa-floppy-disk"></i> บันทึก</button>`);
+}
+async function submitEditClassroom(id) {
+  const name=document.getElementById('mc-name').value.trim();
+  const level=document.getElementById('mc-level').value.trim();
+  const room=document.getElementById('mc-room').value.trim();
+  const r=await apiPost('updateClassroom',{classroom_id:id,name,level,room});
+  if (r.ok){closeModalDirect();toast('แก้ไขสำเร็จ','success');renderManage();initTeacher();}
+  else toast(r.error,'error');
+}
+async function delClassroom(id,name) {
+  if (!confirm(`ลบห้อง "${name}" ?`)) return;
+  const r=await apiPost('deleteClassroom',{classroom_id:id});
+  if (r.ok){toast('ลบสำเร็จ','success');renderManage();}
+  else toast(r.error,'error');
+}
+
+async function renderManageSubjects(el) {
+  const r = await api('getSubjects',{teacher_id:state.teacher.teacher_id});
+  const rows = (r.data||[]).map(s=>`
+    <tr>
+      <td>${s.subject_code}</td>
+      <td>${s.subject_name}</td>
+      <td class="text-center"><span class="badge badge-checking">${s.max_score_collect||100} คะแนน</span></td>
+      <td class="text-xs text-muted">${s.classroom_ids ? s.classroom_ids.split(',').filter(Boolean).map(id=>{const c=state.classrooms.find(x=>x.classroom_id===id);return c?c.name:''}).filter(Boolean).join(', ') : 'ทุกห้อง'}</td>
+      <td>
+        <button class="btn btn-ghost btn-xs" onclick="editSubject('${s.subject_id}','${s.subject_code}','${s.subject_name}','${s.max_score_collect||100}','${s.classroom_ids||''}')"><i class="fa-solid fa-pen"></i></button>
+        <button class="btn btn-danger btn-xs" onclick="delSubject('${s.subject_id}','${s.subject_name}')"><i class="fa-solid fa-trash"></i></button>
+      </td>
+    </tr>`).join('');
+  el.innerHTML = `
+    <div class="card-flat">
+      <div class="sec-header"><div class="sec-title"><i class="fa-solid fa-book-open"></i> วิชา</div>
+        <button class="btn btn-primary btn-sm" onclick="addSubjectModal()"><i class="fa-solid fa-plus"></i> เพิ่มวิชา</button>
+      </div>
+      <div class="tbl-wrap"><table><thead><tr><th>รหัสวิชา</th><th>ชื่อวิชา</th><th class="text-center">คะแนนเก็บ</th><th>ห้องที่สอน</th><th>จัดการ</th></tr></thead>
+      <tbody>${rows||'<tr><td colspan="5" class="text-center text-muted">ยังไม่มีข้อมูล</td></tr>'}</tbody></table></div>
+    </div>`;
+}
+function addSubjectModal(){
+  const clsChecks = state.classrooms.map(c=>`
+    <label style="display:flex;align-items:center;gap:.5rem;padding:.3rem 0;cursor:pointer;font-size:.88rem">
+      <input type="checkbox" value="${c.classroom_id}" class="cls-check" style="width:16px;height:16px">
+      ${c.name}
+    </label>`).join('');
+  openModal('เพิ่มวิชา',`
+    <div class="form-group"><label>รหัสวิชา</label><input id="ms-code" placeholder="เช่น ว21101"></div>
+    <div class="form-group"><label>ชื่อวิชา</label><input id="ms-name" placeholder="เช่น วิทยาศาสตร์พื้นฐาน"></div>
+    <div class="form-group">
+      <label><i class="fa-solid fa-star"></i> คะแนนเก็บ (คะแนนรวมสุดท้ายของวิชา)</label>
+      <input id="ms-collect" type="number" value="20" placeholder="เช่น 20">
+      <div class="text-xs text-muted mt-1">ระบบจะคำนวณสัดส่วนคะแนนภาระงานทั้งหมดให้พอดีกับคะแนนนี้โดยอัตโนมัติ</div>
+    </div>
+    <div class="form-group">
+      <label><i class="fa-solid fa-school"></i> ห้องเรียนที่สอน</label>
+      <div style="background:var(--gray-50);border-radius:var(--radius-xs);padding:.6rem .8rem;border:1.5px solid var(--gray-200)">
+        ${clsChecks||'<span class="text-xs text-muted">ยังไม่มีห้องเรียน กรุณาเพิ่มห้องเรียนก่อน</span>'}
+      </div>
+      <div class="text-xs text-muted mt-1">เลือกเฉพาะห้องที่สอนวิชานี้ นักเรียนห้องอื่นจะไม่เห็นวิชานี้</div>
+    </div>
+    <button class="btn btn-primary w100 mt-1" onclick="submitAddSubject()"><i class="fa-solid fa-floppy-disk"></i> บันทึก</button>`);
+}
+async function submitAddSubject(){
+  const subject_code=document.getElementById('ms-code').value.trim();
+  const subject_name=document.getElementById('ms-name').value.trim();
+  const max_score_collect=document.getElementById('ms-collect').value||100;
+  const classroom_ids=[...document.querySelectorAll('.cls-check:checked')].map(c=>c.value).join(',');
+  if (!subject_name) return toast('กรุณาใส่ชื่อวิชา','error');
+  const r=await apiPost('addSubject',{subject_code,subject_name,max_score_collect,classroom_ids,teacher_id:state.teacher.teacher_id});
+  if (r.ok){closeModalDirect();toast('เพิ่มวิชาสำเร็จ','success');renderManage();initTeacher();}
+  else toast(r.error,'error');
+}
+function editSubject(id,code,name,collect,clsIds=''){
+  const selected=clsIds.split(',').filter(Boolean);
+  const clsChecks = state.classrooms.map(c=>`
+    <label style="display:flex;align-items:center;gap:.5rem;padding:.3rem 0;cursor:pointer;font-size:.88rem">
+      <input type="checkbox" value="${c.classroom_id}" class="cls-check" ${selected.includes(c.classroom_id)?'checked':''} style="width:16px;height:16px">
+      ${c.name}
+    </label>`).join('');
+  openModal('แก้ไขวิชา',`
+    <div class="form-group"><label>รหัสวิชา</label><input id="ms-code" value="${code}"></div>
+    <div class="form-group"><label>ชื่อวิชา</label><input id="ms-name" value="${name}"></div>
+    <div class="form-group">
+      <label><i class="fa-solid fa-star"></i> คะแนนเก็บ</label>
+      <input id="ms-collect" type="number" value="${collect||100}">
+      <div class="text-xs text-muted mt-1">ระบบจะคำนวณสัดส่วนคะแนนภาระงานทั้งหมดให้พอดีกับคะแนนนี้โดยอัตโนมัติ</div>
+    </div>
+    <div class="form-group">
+      <label><i class="fa-solid fa-school"></i> ห้องเรียนที่สอน</label>
+      <div style="background:var(--gray-50);border-radius:var(--radius-xs);padding:.6rem .8rem;border:1.5px solid var(--gray-200)">
+        ${clsChecks||'<span class="text-xs text-muted">ยังไม่มีห้องเรียน</span>'}
+      </div>
+    </div>
+    <button class="btn btn-primary w100 mt-1" onclick="submitEditSubject('${id}')"><i class="fa-solid fa-floppy-disk"></i> บันทึก</button>`);
+}
+async function submitEditSubject(id){
+  const classroom_ids=[...document.querySelectorAll('.cls-check:checked')].map(c=>c.value).join(',');
+  const r=await apiPost('updateSubject',{subject_id:id,subject_code:document.getElementById('ms-code').value.trim(),subject_name:document.getElementById('ms-name').value.trim(),max_score_collect:document.getElementById('ms-collect').value,classroom_ids});
+  if (r.ok){closeModalDirect();toast('แก้ไขสำเร็จ','success');renderManage();initTeacher();}
+  else toast(r.error,'error');
+}
+async function delSubject(id,name){
+  if (!confirm(`ลบวิชา "${name}" ?`)) return;
+  const r=await apiPost('deleteSubject',{subject_id:id});
+  if (r.ok){toast('ลบสำเร็จ','success');renderManage();}
+  else toast(r.error,'error');
+}
+
+async function renderManageStudents(el) {
+  const rc=await api('getClassrooms');
+  const rs=await api('getStudents');
+  const cls=rc.data||[];
+  const clsMap=Object.fromEntries(cls.map(c=>[c.classroom_id,c.name]));
+  const rows=(rs.data||[]).map(s=>`
+    <tr><td>${s.student_code}</td><td>${s.name}</td><td>${clsMap[s.classroom_id]||'-'}</td>
+    <td>
+      <button class="btn btn-ghost btn-xs" onclick="editStudentModal('${s.student_id}','${s.student_code}','${s.name}','${s.classroom_id}')"><i class="fa-solid fa-pen"></i></button>
+      <button class="btn btn-danger btn-xs" onclick="delStudent('${s.student_id}','${s.name}')"><i class="fa-solid fa-trash"></i></button>
+    </td></tr>`).join('');
+  el.innerHTML=`
+    <div class="card-flat">
+      <div class="sec-header">
+        <div class="sec-title"><i class="fa-solid fa-users"></i> นักเรียน (${rs.data?.length||0} คน)</div>
+        <div class="flex gap-1 wrap">
+          <button class="btn btn-sky btn-sm" onclick="downloadCSVTemplate()"><i class="fa-solid fa-file-arrow-down"></i> ตัวอย่าง CSV</button>
+          <button class="btn btn-lav btn-sm" onclick="openImportCSV()"><i class="fa-solid fa-file-arrow-up"></i> นำเข้า CSV</button>
+          <button class="btn btn-primary btn-sm" onclick="addStudentModal()"><i class="fa-solid fa-plus"></i> เพิ่มคนเดียว</button>
+        </div>
+      </div>
+      <!-- CSV Import Panel -->
+      <div id="csv-import-panel" class="hidden" style="background:var(--lav-l);border-radius:var(--radius-s);padding:1rem;margin-bottom:1rem;border:1.5px dashed var(--lav)">
+        <div class="sec-title mb-2" style="font-size:.95rem"><i class="fa-solid fa-file-csv"></i> นำเข้านักเรียนจากไฟล์ CSV</div>
+        <div class="form-group">
+          <label>เลือกห้องเรียน <span style="color:var(--red-d)">*</span></label>
+          <select id="csv-cls-sel" style="width:100%;padding:.5rem .8rem;border:1.5px solid var(--gray-200);border-radius:var(--radius-s);font-size:.9rem;background:var(--white)">
+            <option value="">-- เลือกห้องเรียนที่จะนำเข้า --</option>
+            ${cls.map(c=>`<option value="${c.classroom_id}">${c.name}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>เลือกไฟล์ CSV</label>
+          <input type="file" id="csv-file-input" accept=".csv" style="width:100%;padding:.5rem;border:1.5px solid var(--gray-200);border-radius:var(--radius-s);background:var(--white);font-size:.88rem">
+        </div>
+        <div id="csv-preview" class="hidden" style="margin-bottom:.8rem">
+          <div class="text-sm bold mb-1"><i class="fa-solid fa-eye"></i> ตัวอย่างข้อมูล (5 แถวแรก)</div>
+          <div id="csv-preview-table" class="tbl-wrap"></div>
+          <div id="csv-count" class="text-xs text-muted mt-1"></div>
+        </div>
+        <div class="flex gap-1">
+          <button class="btn btn-primary btn-sm" onclick="submitImportCSV()"><i class="fa-solid fa-upload"></i> นำเข้าทั้งหมด</button>
+          <button class="btn btn-ghost btn-sm" onclick="closeImportCSV()"><i class="fa-solid fa-xmark"></i> ยกเลิก</button>
+        </div>
+      </div>
+      <div class="tbl-wrap"><table><thead><tr><th>รหัส</th><th>ชื่อ</th><th>ห้อง</th><th>จัดการ</th></tr></thead><tbody>${rows||'<tr><td colspan="4" class="text-center text-muted">ยังไม่มีข้อมูล</td></tr>'}</tbody></table></div>
+    </div>`;
+
+  // ผูก event กับ file input
+  document.getElementById('csv-file-input').addEventListener('change', previewCSV);
+}
+function clsOptions(selId=''){
+  return state.classrooms.map(c=>`<option value="${c.classroom_id}" ${c.classroom_id===selId?'selected':''}>${c.name}</option>`).join('');
+}
+function addStudentModal(){
+  openModal('เพิ่มนักเรียน',`
+    <div class="form-group"><label>รหัสนักเรียน</label><input id="mstu-code" placeholder="เช่น 12345"></div>
+    <div class="form-group"><label>ชื่อ-นามสกุล</label><input id="mstu-name" placeholder="ชื่อ นามสกุล"></div>
+    <div class="form-group"><label>ห้องเรียน</label><select id="mstu-cls"><option value="">เลือกห้อง</option>${clsOptions()}</select></div>
+    <button class="btn btn-primary w100 mt-1" onclick="submitAddStudent()"><i class="fa-solid fa-floppy-disk"></i> บันทึก</button>`);
+}
+async function submitAddStudent(){
+  const student_code=document.getElementById('mstu-code').value.trim();
+  const name=document.getElementById('mstu-name').value.trim();
+  const classroom_id=document.getElementById('mstu-cls').value;
+  if (!student_code||!name||!classroom_id) return toast('กรุณากรอกข้อมูลให้ครบ','error');
+  const r=await apiPost('addStudent',{student_code,name,classroom_id});
+  if (r.ok){closeModalDirect();toast('เพิ่มนักเรียนสำเร็จ','success');renderManage();}
+  else toast(r.error,'error');
+}
+function editStudentModal(id,code,name,clsId){
+  openModal('แก้ไขข้อมูลนักเรียน',`
+    <div class="form-group"><label>รหัสนักเรียน</label><input id="mstu-code" value="${code}"></div>
+    <div class="form-group"><label>ชื่อ-นามสกุล</label><input id="mstu-name" value="${name}"></div>
+    <div class="form-group"><label>ห้องเรียน</label><select id="mstu-cls"><option value="">เลือกห้อง</option>${clsOptions(clsId)}</select></div>
+    <button class="btn btn-primary w100 mt-1" onclick="submitEditStudent('${id}')"><i class="fa-solid fa-floppy-disk"></i> บันทึก</button>`);
+}
+async function submitEditStudent(id){
+  const r=await apiPost('updateStudent',{student_id:id,student_code:document.getElementById('mstu-code').value.trim(),name:document.getElementById('mstu-name').value.trim(),classroom_id:document.getElementById('mstu-cls').value});
+  if (r.ok){closeModalDirect();toast('แก้ไขสำเร็จ','success');renderManage();}
+  else toast(r.error,'error');
+}
+async function delStudent(id,name){
+  if (!confirm(`ลบนักเรียน "${name}" ?`)) return;
+  const r=await apiPost('deleteStudent',{student_id:id});
+  if (r.ok){toast('ลบสำเร็จ','success');renderManage();}
+  else toast(r.error,'error');
+}
+
+// ============================================================
+//  CSV IMPORT
+// ============================================================
+function downloadCSVTemplate() {
+  const content = 'student_code,name\n12001,นายสมชาย ใจดี\n12002,นางสาวสมหญิง รักเรียน\n12003,เด็กชายวิชัย ขยันดี';
+  const blob = new Blob(['\uFEFF'+content], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ตัวอย่างนำเข้านักเรียน.csv';
+  a.click();
+  toast('ดาวน์โหลดไฟล์ตัวอย่างแล้วค่ะ','success');
+}
+
+function openImportCSV() {
+  const panel = document.getElementById('csv-import-panel');
+  if (panel) {
+    panel.classList.remove('hidden');
+    panel.scrollIntoView({behavior:'smooth'});
+  }
+}
+function closeImportCSV() {
+  const panel = document.getElementById('csv-import-panel');
+  if (panel) panel.classList.add('hidden');
+}
+
+let csvParsedData = [];
+
+function previewCSV(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const text = ev.target.result.replace(/^\uFEFF/,''); // ลบ BOM
+    const lines = text.split(/\r?\n/).filter(l=>l.trim());
+    if (lines.length < 2) return toast('ไฟล์ CSV ต้องมีข้อมูลอย่างน้อย 1 แถว','error');
+
+    const headers = lines[0].split(',').map(h=>h.trim().toLowerCase());
+    const codeIdx = headers.findIndex(h=>h==='student_code'||h==='รหัส'||h==='รหัสนักเรียน');
+    const nameIdx = headers.findIndex(h=>h==='name'||h==='ชื่อ'||h==='ชื่อ-นามสกุล'||h==='ชื่อนักเรียน');
+
+    if (codeIdx<0||nameIdx<0) {
+      return toast('ไม่พบคอลัมน์ student_code และ name กรุณาใช้ไฟล์ตัวอย่าง','error');
+    }
+
+    csvParsedData = lines.slice(1).map(line=>{
+      const cols = line.split(',').map(c=>c.trim().replace(/^"|"$/g,''));
+      return { student_code: cols[codeIdx]||'', name: cols[nameIdx]||'' };
+    }).filter(r=>r.student_code && r.name);
+
+    // แสดง preview 5 แถว
+    const preview = csvParsedData.slice(0,5);
+    document.getElementById('csv-preview').classList.remove('hidden');
+    document.getElementById('csv-preview-table').innerHTML = `
+      <table><thead><tr><th>รหัสนักเรียน</th><th>ชื่อ-นามสกุล</th></tr></thead>
+      <tbody>${preview.map(r=>`<tr><td>${r.student_code}</td><td>${r.name}</td></tr>`).join('')}</tbody></table>`;
+    document.getElementById('csv-count').textContent =
+      `พบข้อมูลทั้งหมด ${csvParsedData.length} คน ${csvParsedData.length>5?`(แสดง 5 คนแรก)`:''}`;
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+async function submitImportCSV() {
+  const classroom_id = document.getElementById('csv-cls-sel').value;
+  if (!classroom_id) return toast('กรุณาเลือกห้องเรียนก่อน','error');
+  if (!csvParsedData.length) return toast('กรุณาเลือกไฟล์ CSV ก่อน','error');
+
+  // แสดง progress
+  toast(`กำลังนำเข้า ${csvParsedData.length} คน...`,'info',10000);
+
+  let success=[], skipped=[], failed=[];
+
+  for (const row of csvParsedData) {
+    const r = await apiPost('addStudent',{student_code:row.student_code, name:row.name, classroom_id});
+    if (r.ok) success.push(row);
+    else if (r.error?.includes('มีในระบบแล้ว')) skipped.push(row);
+    else failed.push({...row, error: r.error});
+  }
+
+  closeImportCSV();
+  csvParsedData = [];
+
+  // แสดง modal สรุปผล
+  const successRows = success.map(r=>`<tr><td>${r.student_code}</td><td>${r.name}</td><td><span class="badge badge-graded"><i class="fa-solid fa-circle-check"></i> สำเร็จ</span></td></tr>`).join('');
+  const skippedRows = skipped.map(r=>`<tr><td>${r.student_code}</td><td>${r.name}</td><td><span class="badge badge-checking"><i class="fa-solid fa-triangle-exclamation"></i> ซ้ำในระบบ</span></td></tr>`).join('');
+  const failedRows  = failed.map(r=>`<tr><td>${r.student_code}</td><td>${r.name}</td><td><span class="badge badge-not_submitted"><i class="fa-solid fa-circle-xmark"></i> ผิดพลาด</span></td></tr>`).join('');
+
+  openModal('สรุปผลการนำเข้านักเรียน', `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem;margin-bottom:1.2rem">
+      <div class="stat-box" style="background:var(--mint-l)">
+        <div class="stat-num" style="color:var(--mint-d);font-size:1.6rem">${success.length}</div>
+        <div class="stat-label" style="color:var(--mint-d)">นำเข้าสำเร็จ</div>
+      </div>
+      <div class="stat-box" style="background:var(--yellow-l)">
+        <div class="stat-num" style="color:var(--yellow-d);font-size:1.6rem">${skipped.length}</div>
+        <div class="stat-label" style="color:var(--yellow-d)">รหัสซ้ำ (ข้าม)</div>
+      </div>
+      <div class="stat-box" style="background:var(--red-l)">
+        <div class="stat-num" style="color:var(--red-d);font-size:1.6rem">${failed.length}</div>
+        <div class="stat-label" style="color:var(--red-d)">ผิดพลาด</div>
+      </div>
+    </div>
+    ${successRows||skippedRows||failedRows ? `
+    <div class="tbl-wrap" style="max-height:300px;overflow-y:auto">
+      <table>
+        <thead><tr><th>รหัส</th><th>ชื่อ</th><th>สถานะ</th></tr></thead>
+        <tbody>${successRows}${skippedRows}${failedRows}</tbody>
+      </table>
+    </div>` : ''}
+    <button class="btn btn-primary w100 mt-2" onclick="closeModalDirect();renderManage()">
+      <i class="fa-solid fa-check"></i> ปิดและรีเฟรชรายชื่อ
+    </button>
+  `);
+}
+
+async function renderManageAssignments(el) {
+  const rs=await api('getSubjects',{teacher_id:state.teacher.teacher_id});
+  const subjects=rs.data||[];
+  const selOpts=subjects.map(s=>`<option value="${s.subject_id}">${s.subject_name}</option>`).join('');
+  el.innerHTML=`
+    <div class="card-flat">
+      <div class="sec-header"><div class="sec-title"><i class="fa-solid fa-clipboard-list"></i> ภาระงาน</div></div>
+      <div class="form-group"><label>เลือกวิชา</label>
+        <select id="asn-sub-sel" onchange="loadManageAsn()"><option value="">เลือกวิชา</option>${selOpts}</select>
+      </div>
+      <div id="asn-manage-list"></div>
+    </div>`;
+}
+
+async function loadManageAsn(){
+  const subId=document.getElementById('asn-sub-sel').value;
+  if (!subId) return;
+  const r=await api('getAssignments',{subject_id:subId});
+  const asns=r.data||[];
+  const el=document.getElementById('asn-manage-list');
+  el.innerHTML=`<div class="sec-header mt-2"><div class="sec-title"><i class="fa-solid fa-list"></i> รายการภาระงาน</div>
+    <button class="btn btn-primary btn-sm" onclick="addAsnModal('${subId}')"><i class="fa-solid fa-plus"></i> เพิ่มภาระงาน</button></div>`+
+    (asns.length?asns.map((a,i)=>`
+      <div class="asn-item">
+        <div class="asn-num">${i+1}</div>
+        <div class="asn-info"><div class="asn-title">${a.title}</div><div class="asn-meta">คะแนนเต็ม ${a.max_score} ${a.due_date?'· '+a.due_date:''}</div></div>
+        <div class="flex gap-1">
+          <button class="btn btn-lav btn-xs" onclick="manageIndicators('${a.assignment_id}','${a.title}')"><i class="fa-solid fa-tags"></i></button>
+          <button class="btn btn-ghost btn-xs" onclick="editAsnModal('${a.assignment_id}','${encodeURIComponent(JSON.stringify(a))}')"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn btn-danger btn-xs" onclick="delAsn('${a.assignment_id}','${a.title}')"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      </div>`).join('')
+    :`<div class="empty-state"><i class="fa-solid fa-clipboard"></i><p>ยังไม่มีภาระงาน</p></div>`);
+}
+
+function addAsnModal(subId){
+  openModal('เพิ่มภาระงาน',`
+    <div class="form-group"><label>ชื่อภาระงาน</label><input id="ma-title" placeholder="ชื่อภาระงาน"></div>
+    <div class="form-group"><label>รายละเอียด</label><textarea id="ma-desc" placeholder="รายละเอียด (ถ้ามี)"></textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label>คะแนนเต็ม</label><input id="ma-score" type="number" value="100" oninput="updateIndTotal()"></div>
+      <div class="form-group"><label>กำหนดส่ง</label><input id="ma-due" type="date"></div>
+    </div>
+    <div class="form-group">
+      <label><i class="fa-solid fa-image"></i> รูปภาพตัวอย่าง</label>
+      <div style="display:flex;gap:.5rem;align-items:flex-start;flex-wrap:wrap">
+        <div style="flex:1;min-width:180px">
+          <input id="ma-img" placeholder="https://... (หรืออัปโหลดจากเครื่อง)" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--gray-200);border-radius:var(--radius-xs);font-size:.88rem">
+        </div>
+        <label style="cursor:pointer">
+          <span class="btn btn-sky btn-sm"><i class="fa-solid fa-upload"></i> อัปโหลด</span>
+          <input type="file" accept="image/*" style="display:none" onchange="uploadImageFile(this,'ma-img','ma-img-preview')">
+        </label>
+      </div>
+      <div id="ma-img-preview" style="margin-top:.5rem"></div>
+    </div>
+    <div class="form-group"><label><i class="fa-solid fa-link"></i> ลิงค์ตัวอย่างงาน</label><input id="ma-link" placeholder="https://..."></div>
+    <hr style="margin:.8rem 0;border-color:var(--gray-100)">
+    <div class="sec-header" style="margin-bottom:.6rem">
+      <div style="font-weight:600;font-size:.92rem;display:flex;align-items:center;gap:.4rem"><i class="fa-solid fa-tags" style="color:var(--lav-d)"></i> ตัวชี้วัด</div>
+      <button type="button" class="btn btn-lav btn-xs" onclick="addIndRow()"><i class="fa-solid fa-plus"></i> เพิ่มตัวชี้วัด</button>
+    </div>
+    <div id="ind-rows"></div>
+    <div class="text-xs text-muted mt-1" id="ind-total-note"></div>
+    <button class="btn btn-primary w100 mt-2" onclick="submitAddAsn('${subId}')"><i class="fa-solid fa-floppy-disk"></i> บันทึก</button>`);
+}
+
+let indRowCount = 0;
+function addIndRow(text='', score='') {
+  indRowCount++;
+  const id = 'ind-row-'+indRowCount;
+  const row = document.createElement('div');
+  row.id = id;
+  row.style.cssText = 'display:flex;gap:.5rem;margin-bottom:.4rem;align-items:center';
+  row.innerHTML = `
+    <input placeholder="ชื่อตัวชี้วัด" value="${text}" style="flex:1;padding:.4rem .6rem;border:1.5px solid var(--gray-200);border-radius:var(--radius-xs);font-size:.88rem" class="ind-txt">
+    <input type="number" placeholder="คะแนน" value="${score}" min="0" style="width:72px;padding:.4rem .5rem;border:1.5px solid var(--gray-200);border-radius:var(--radius-xs);text-align:center;font-size:.85rem" class="ind-sc" oninput="updateIndTotal()">
+    <button type="button" class="btn btn-danger btn-xs" onclick="document.getElementById('${id}').remove();updateIndTotal()"><i class="fa-solid fa-trash"></i></button>`;
+  document.getElementById('ind-rows').appendChild(row);
+  updateIndTotal();
+}
+
+function updateIndTotal() {
+  const maxScore = Number(document.getElementById('ma-score')?.value||0);
+  const scores = [...document.querySelectorAll('.ind-sc')].map(i=>Number(i.value)||0);
+  const total = scores.reduce((s,v)=>s+v,0);
+  const note = document.getElementById('ind-total-note');
+  if (!note) return;
+  if (scores.length === 0) { note.textContent=''; return; }
+  const diff = maxScore - total;
+  if (diff === 0) note.innerHTML = `<span style="color:var(--mint-d)"><i class="fa-solid fa-circle-check"></i> คะแนนตัวชี้วัดรวม ${total} ตรงกับคะแนนเต็ม ✓</span>`;
+  else if (diff > 0) note.innerHTML = `<span style="color:var(--yellow-d)"><i class="fa-solid fa-triangle-exclamation"></i> คะแนนตัวชี้วัดรวม ${total} — ยังขาดอีก ${diff} คะแนน</span>`;
+  else note.innerHTML = `<span style="color:var(--red-d)"><i class="fa-solid fa-circle-xmark"></i> คะแนนตัวชี้วัดรวม ${total} — เกินคะแนนเต็ม ${Math.abs(diff)} คะแนน</span>`;
+}
+
+async function submitAddAsn(subId){
+  const title=document.getElementById('ma-title').value.trim();
+  if (!title) return toast('กรุณาใส่ชื่อภาระงาน','error');
+  const r=await apiPost('addAssignment',{
+    subject_id:subId, title,
+    description:document.getElementById('ma-desc').value,
+    max_score:document.getElementById('ma-score').value,
+    due_date:document.getElementById('ma-due').value,
+    image_url:document.getElementById('ma-img').value,
+    link_url:document.getElementById('ma-link').value
+  });
+  if (!r.ok) return toast(r.error,'error');
+  // บันทึกตัวชี้วัด
+  const rows = document.querySelectorAll('#ind-rows > div');
+  let order = 1;
+  for (const row of rows) {
+    const txt = row.querySelector('.ind-txt')?.value?.trim();
+    const sc  = row.querySelector('.ind-sc')?.value||0;
+    if (txt) await apiPost('addIndicator',{assignment_id:r.assignment_id, indicator_text:txt, max_score:sc, order_no:order++});
+  }
+  indRowCount = 0;
+  closeModalDirect();
+  toast('เพิ่มภาระงานสำเร็จ','success');
+  loadManageAsn();
+}
+function editAsnModal(id,encoded){
+  const a=JSON.parse(decodeURIComponent(encoded));
+  const previewHtml = a.image_url ? `<div style="margin-top:.5rem"><img src="${a.image_url}" style="max-width:100%;max-height:120px;border-radius:var(--radius-xs);object-fit:cover"></div>` : '';
+  openModal('แก้ไขภาระงาน',`
+    <div class="form-group"><label>ชื่อภาระงาน</label><input id="ma-title" value="${a.title}"></div>
+    <div class="form-group"><label>รายละเอียด</label><textarea id="ma-desc">${a.description||''}</textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label>คะแนนเต็ม</label><input id="ma-score" type="number" value="${a.max_score}"></div>
+      <div class="form-group"><label>กำหนดส่ง</label><input id="ma-due" type="date" value="${a.due_date||''}"></div>
+    </div>
+    <div class="form-group">
+      <label><i class="fa-solid fa-image"></i> รูปภาพตัวอย่าง</label>
+      <div style="display:flex;gap:.5rem;align-items:flex-start;flex-wrap:wrap">
+        <div style="flex:1;min-width:180px">
+          <input id="ma-img" value="${a.image_url||''}" placeholder="https://... (หรืออัปโหลดจากเครื่อง)" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--gray-200);border-radius:var(--radius-xs);font-size:.88rem">
+        </div>
+        <label style="cursor:pointer">
+          <span class="btn btn-sky btn-sm"><i class="fa-solid fa-upload"></i> อัปโหลด</span>
+          <input type="file" accept="image/*" style="display:none" onchange="uploadImageFile(this,'ma-img','ma-img-preview')">
+        </label>
+      </div>
+      <div id="ma-img-preview">${previewHtml}</div>
+    </div>
+    <div class="form-group"><label>ลิงค์ตัวอย่างงาน</label><input id="ma-link" value="${a.link_url||''}"></div>
+    <button class="btn btn-primary w100 mt-1" onclick="submitEditAsn('${id}')"><i class="fa-solid fa-floppy-disk"></i> บันทึก</button>`);
+}
+async function submitEditAsn(id){
+  const r=await apiPost('updateAssignment',{assignment_id:id,title:document.getElementById('ma-title').value.trim(),description:document.getElementById('ma-desc').value,max_score:document.getElementById('ma-score').value,due_date:document.getElementById('ma-due').value,image_url:document.getElementById('ma-img').value,link_url:document.getElementById('ma-link').value});
+  if (r.ok){closeModalDirect();toast('แก้ไขสำเร็จ','success');loadManageAsn();}
+  else toast(r.error,'error');
+}
+async function delAsn(id,name){
+  if (!confirm(`ลบภาระงาน "${name}" ? (จะลบคะแนนทั้งหมดด้วย)`)) return;
+  const r=await apiPost('deleteAssignment',{assignment_id:id});
+  if (r.ok){toast('ลบสำเร็จ','success');loadManageAsn();}
+  else toast(r.error,'error');
+}
+
+async function manageIndicators(asnId,asnTitle){
+  const r=await api('getIndicators',{assignment_id:asnId});
+  const inds=r.data||[];
+  const indRows=inds.map(ind=>`
+    <div class="flex items-center gap-1 mb-1" id="ind-row-${ind.indicator_id}">
+      <input value="${ind.indicator_text}" style="flex:1;padding:.4rem .6rem;border:1.5px solid var(--gray-200);border-radius:var(--radius-xs);font-size:.88rem" id="ind-txt-${ind.indicator_id}">
+      <input type="number" value="${ind.max_score}" style="width:60px;padding:.4rem .5rem;border:1.5px solid var(--gray-200);border-radius:var(--radius-xs);text-align:center;font-size:.85rem" id="ind-sc-${ind.indicator_id}">
+      <button class="btn btn-mint btn-xs" onclick="updateIndicator('${ind.indicator_id}')"><i class="fa-solid fa-floppy-disk"></i></button>
+      <button class="btn btn-danger btn-xs" onclick="delIndicator('${ind.indicator_id}','${asnId}','${asnTitle}')"><i class="fa-solid fa-trash"></i></button>
+    </div>`).join('');
+  openModal(`ตัวชี้วัด: ${asnTitle}`,`
+    <div id="ind-list">${indRows||'<p class="text-muted text-sm mb-2">ยังไม่มีตัวชี้วัด</p>'}</div>
+    <hr style="margin:1rem 0;border-color:var(--gray-100)">
+    <p class="text-sm bold mb-1">เพิ่มตัวชี้วัด</p>
+    <div class="flex gap-1">
+      <input id="new-ind-txt" placeholder="ชื่อตัวชี้วัด" style="flex:1;padding:.4rem .6rem;border:1.5px solid var(--gray-200);border-radius:var(--radius-xs);font-size:.88rem">
+      <input id="new-ind-sc" type="number" placeholder="คะแนน" style="width:70px;padding:.4rem .5rem;border:1.5px solid var(--gray-200);border-radius:var(--radius-xs);text-align:center;font-size:.85rem">
+      <button class="btn btn-primary btn-sm" onclick="addIndicator('${asnId}','${asnTitle}')"><i class="fa-solid fa-plus"></i></button>
+    </div>`);
+}
+async function addIndicator(asnId,asnTitle){
+  const txt=document.getElementById('new-ind-txt').value.trim();
+  const sc=document.getElementById('new-ind-sc').value;
+  if (!txt) return toast('กรุณาใส่ชื่อตัวชี้วัด','error');
+  const r=await apiPost('addIndicator',{assignment_id:asnId,indicator_text:txt,max_score:sc||0,order_no:Date.now()});
+  if (r.ok){toast('เพิ่มตัวชี้วัดสำเร็จ','success');manageIndicators(asnId,asnTitle);}
+  else toast(r.error,'error');
+}
+async function updateIndicator(id){
+  const txt=document.getElementById('ind-txt-'+id).value.trim();
+  const sc=document.getElementById('ind-sc-'+id).value;
+  const r=await apiPost('updateIndicator',{indicator_id:id,indicator_text:txt,max_score:sc});
+  if (r.ok) toast('บันทึกสำเร็จ','success');
+  else toast(r.error,'error');
+}
+async function delIndicator(id,asnId,asnTitle){
+  const r=await apiPost('deleteIndicator',{indicator_id:id});
+  if (r.ok){toast('ลบสำเร็จ','success');manageIndicators(asnId,asnTitle);}
+  else toast(r.error,'error');
+}
+
+// ============================================================
+//  HOMEROOM DASHBOARD
+// ============================================================
+async function renderHomeroomDashboard() {
+  const clsId = state.teacher.homeroom_classroom_id;
+  if (!clsId) return;
+  const el = document.getElementById('homeroom-content');
+  el.innerHTML = `<div class="loader"><i class="fa-solid fa-spinner"></i></div>`;
+  const r = await api('getHomeroomDashboard',{classroom_id: clsId});
+  if (!r.ok) return;
+
+  // Stats summary
+  const totalNotSub = r.students.reduce((s,st)=>s+st.not_submitted,0);
+  const totalGraded  = r.students.reduce((s,st)=>s+st.graded,0);
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.7rem;margin-bottom:1.5rem">
+      <div class="stat-box"><div class="stat-num" style="color:var(--sky-d)">${r.students.length}</div><div class="stat-label">นักเรียนทั้งหมด</div></div>
+      <div class="stat-box"><div class="stat-num" style="color:var(--mint-d)">${totalGraded}</div><div class="stat-label">งานตรวจแล้ว</div></div>
+      <div class="stat-box"><div class="stat-num" style="color:var(--red-d)">${totalNotSub}</div><div class="stat-label">งานค้างส่ง</div></div>
+      <div class="stat-box"><div class="stat-num" style="color:var(--lav-d)">${r.subjects.length}</div><div class="stat-label">รายวิชา</div></div>
+    </div>
+
+    <div style="font-size:13px;color:var(--text-m);margin-bottom:1.5rem;background:var(--pink-l);border-radius:var(--radius-s);padding:.6rem 1rem">
+      <i class="fa-solid fa-egg" style="color:var(--pink-d)"></i> มอนสเตอร์ 1 ตัว = ส่งงาน ${HATCH_EVERY} ชิ้น (นับทุกวิชา)
+    </div>
+
+    <div class="sec-title mb-2"><i class="fa-solid fa-seedling"></i> สวนมอนสเตอร์ทั้งห้อง</div>
+    <div class="card-flat mb-3">
+      <div id="homeroom-garden-list"></div>
+    </div>
+
+    <div id="homeroom-garden-preview" class="hidden card-flat mb-3">
+      <div class="sec-header">
+        <div class="sec-title" id="homeroom-preview-name" style="font-size:.95rem"></div>
+        <button class="btn btn-ghost btn-xs" onclick="document.getElementById('homeroom-garden-preview').classList.add('hidden')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="garden-field" id="homeroom-preview-field"></div>
+    </div>
+
+    <div class="sec-title mb-2"><i class="fa-solid fa-book"></i> ความคืบหน้าแต่ละวิชา</div>
+    <div class="card-flat mb-3">
+      ${r.subjects.map(s=>`
+        <div style="margin-bottom:1rem">
+          <div class="flex justify-between text-sm mb-1">
+            <span class="bold">${s.subject_name}</span>
+            <span class="text-muted text-xs">ครูผู้สอน: ${s.teacher_name}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="progress-wrap" style="flex:1"><div class="progress-bar green" style="width:${s.progress_pct}%"></div></div>
+            <span class="text-xs" style="min-width:36px;text-align:right">${s.progress_pct}%</span>
+          </div>
+          <div class="flex gap-2 mt-1">
+            <span class="badge badge-graded">${s.assignment_count} ภาระงาน</span>
+            <span class="badge badge-not_submitted"><i class="fa-solid fa-circle-xmark"></i> ค้าง ${s.not_submitted_total} ชิ้น</span>
+          </div>
+        </div>`).join('<hr style="border-color:var(--gray-100);margin:.5rem 0">')}
+    </div>
+
+    <div class="sec-title mb-2"><i class="fa-solid fa-users"></i> รายนักเรียน (เรียงตามงานค้างมากสุด)</div>
+    <div class="tbl-wrap card-flat">
+      <table>
+        <thead><tr><th>#</th><th>รหัส</th><th>ชื่อ</th><th class="text-center">ตรวจแล้ว</th><th class="text-center">กำลังตรวจ</th><th class="text-center" style="color:var(--red-d)">ค้างส่ง</th><th>ความคืบหน้า</th></tr></thead>
+        <tbody>
+          ${r.students.map((s,i)=>`
+            <tr>
+              <td class="text-muted text-xs">${i+1}</td>
+              <td class="text-xs">${s.student_code}</td>
+              <td>${s.name}</td>
+              <td class="text-center"><span class="badge badge-graded">${s.graded}</span></td>
+              <td class="text-center"><span class="badge badge-checking">${s.checking}</span></td>
+              <td class="text-center"><span class="badge badge-not_submitted">${s.not_submitted}</span></td>
+              <td style="min-width:100px">
+                <div class="progress-wrap"><div class="progress-bar ${s.not_submitted===0?'green':'pink'}" style="width:${s.progress_pct}%"></div></div>
+                <div class="text-xs text-muted mt-1">${s.progress_pct}%</div>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+
+  // render garden list หลังจาก HTML ถูกสร้างแล้ว
+  const gardenList = document.getElementById('homeroom-garden-list');
+  if (gardenList) {
+    gardenList.innerHTML = r.students.map((s,i) => {
+      const submitted = s.graded + s.checking;
+      const monsters = getStudentMonsters(s.student_id, submitted);
+      const avatarColors = ['#B5D4F4','#9FE1CB','#FAC775','#F4C0D1','#CECBF6','#F5C4B3'];
+      const avatarColor = avatarColors[i % avatarColors.length];
+      return `<div class="stu-garden-row" onclick="previewStudentGarden('${s.student_id}','${s.name}',${submitted})">
+        <div class="stu-avatar" style="background:${avatarColor};color:var(--text)">${s.name.slice(2,4)||s.name.slice(0,2)}</div>
+        <div style="flex:1;min-width:0">
+          <div class="text-sm bold">${s.name}</div>
+          <div class="stu-mon-preview">
+            ${monsters.length ? monsters.map(m=>`<span style="font-size:1.1rem" title="${m.name}">${m.e}</span>`).join('') : '<span class="text-xs text-muted">ยังไม่มีมอนสเตอร์</span>'}
+          </div>
+        </div>
+        <span class="mon-count-badge">${monsters.length} ตัว</span>
+      </div>`;
+    }).join('');
+  }
+}
+
+function previewStudentGarden(studentId, name, submitted) {
+  const monsters = getStudentMonsters(studentId, submitted);
+  const preview = document.getElementById('homeroom-garden-preview');
+  const field = document.getElementById('homeroom-preview-field');
+  const nameEl = document.getElementById('homeroom-preview-name');
+  if (!preview||!field||!nameEl) return;
+  nameEl.innerHTML = `<i class="fa-solid fa-seedling"></i> สวนของ ${name} (${monsters.length} ตัว)`;
+  field.innerHTML = monsters.length
+    ? monsters.map(m=>`<div class="mon-item"><span class="mon-emoji">${m.e}</span><div class="mon-label">${m.name}</div></div>`).join('')
+    : '<div class="garden-field-empty">ยังไม่มีมอนสเตอร์ในสวน</div>';
+  preview.classList.remove('hidden');
+  preview.scrollIntoView({behavior:'smooth'});
+}
+
+// ============================================================
+//  TEACHER MANAGEMENT (admin only)
+// ============================================================
+async function renderTeachersManage() {
+  const el = document.getElementById('teachers-content');
+  el.innerHTML = `<div class="loader"><i class="fa-solid fa-spinner"></i></div>`;
+  const [rt, rc] = await Promise.all([api('getTeachers'), api('getClassrooms')]);
+  state.classrooms = rc.data || [];
+  const teachers = rt.data || [];
+  const roleLabel = { admin:'ผู้ดูแลระบบ', teacher:'ครูผู้สอน', homeroom:'ครูประจำชั้น' };
+  const roleBadge = { admin:'badge-graded', teacher:'badge-checking', homeroom:'badge-not_submitted' };
+  const rows = teachers.map(t=>`
+    <tr>
+      <td>${t.name}</td>
+      <td class="text-xs">${t.username}</td>
+      <td><span class="badge ${roleBadge[t.role]||'badge-checking'}">${roleLabel[t.role]||t.role}</span></td>
+      <td class="text-xs">${t.homeroom_classroom_name||'-'}</td>
+      <td>
+        <button class="btn btn-ghost btn-xs" onclick="editTeacherModal('${t.teacher_id}','${encodeURIComponent(JSON.stringify({...t,password:''}))}')"><i class="fa-solid fa-pen"></i></button>
+        ${t.teacher_id !== state.teacher.teacher_id
+          ? `<button class="btn btn-danger btn-xs" onclick="delTeacher('${t.teacher_id}','${t.name}')"><i class="fa-solid fa-trash"></i></button>`
+          : ''}
+      </td>
+    </tr>`).join('');
+  el.innerHTML = `
+    <div class="card-flat">
+      <div class="sec-header">
+        <div class="sec-title"><i class="fa-solid fa-users-gear"></i> จัดการครู</div>
+        <button class="btn btn-primary btn-sm" onclick="addTeacherModal()"><i class="fa-solid fa-plus"></i> เพิ่มครู</button>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>ชื่อ</th><th>Username</th><th>บทบาท</th><th>ครูประจำชั้น</th><th>จัดการ</th></tr></thead>
+          <tbody>${rows||'<tr><td colspan="5" class="text-center text-muted">ยังไม่มีข้อมูล</td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function teacherClsOptions(selId='') {
+  return `<option value="">ไม่ได้เป็นครูประจำชั้น</option>`+
+    state.classrooms.map(c=>`<option value="${c.classroom_id}" ${c.classroom_id===selId?'selected':''}>${c.name}</option>`).join('');
+}
+function roleOptions(sel='teacher') {
+  return [['admin','ผู้ดูแลระบบ (เห็นทุกอย่าง + จัดการครู)'],['teacher','ครูผู้สอน (เห็นเฉพาะวิชาตัวเอง)'],['homeroom','ครูประจำชั้น (เห็นวิชาตัวเองและภาพรวมห้อง)']]
+    .map(([v,l])=>`<option value="${v}" ${v===sel?'selected':''}>${l}</option>`).join('');
+}
+
+function addTeacherModal() {
+  openModal('เพิ่มครู',`
+    <div class="form-group"><label>ชื่อ-นามสกุล</label><input id="mt-name" placeholder="ชื่อ นามสกุล"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Username</label><input id="mt-user" placeholder="username"></div>
+      <div class="form-group"><label>Password</label><input id="mt-pass" placeholder="รหัสผ่าน"></div>
+    </div>
+    <div class="form-group"><label>บทบาท</label><select id="mt-role" onchange="toggleHomeroomSel()">${roleOptions()}</select></div>
+    <div class="form-group" id="mt-cls-group" style="display:none">
+      <label><i class="fa-solid fa-house-chimney-user"></i> ห้องที่ดูแล (ครูประจำชั้น)</label>
+      <select id="mt-cls">${teacherClsOptions()}</select>
+    </div>
+    <div class="text-xs text-muted mb-2" style="background:var(--sky-l);padding:.6rem .8rem;border-radius:var(--radius-xs)">
+      <i class="fa-solid fa-circle-info"></i> ครูคนเดียวสามารถเป็นได้ทั้งครูผู้สอนและครูประจำชั้น โดยเลือกบทบาทเป็น "ครูประจำชั้น" แล้วเลือกห้องที่ดูแล
+    </div>
+    <button class="btn btn-primary w100" onclick="submitAddTeacher()"><i class="fa-solid fa-floppy-disk"></i> บันทึก</button>`);
+}
+function toggleHomeroomSel() {
+  const role = document.getElementById('mt-role')?.value;
+  const grp  = document.getElementById('mt-cls-group');
+  if (grp) grp.style.display = (role==='homeroom') ? 'block' : 'none';
+}
+async function submitAddTeacher() {
+  const name=document.getElementById('mt-name').value.trim();
+  const username=document.getElementById('mt-user').value.trim();
+  const password=document.getElementById('mt-pass').value.trim();
+  const role=document.getElementById('mt-role').value;
+  const homeroom_classroom_id=document.getElementById('mt-cls')?.value||'';
+  if (!name||!username||!password) return toast('กรุณากรอกข้อมูลให้ครบ','error');
+  const r=await apiPost('addTeacher',{name,username,password,role,homeroom_classroom_id});
+  if (r.ok){closeModalDirect();toast('เพิ่มครูสำเร็จ','success');renderTeachersManage();}
+  else toast(r.error,'error');
+}
+function editTeacherModal(id, encoded) {
+  const t = JSON.parse(decodeURIComponent(encoded));
+  openModal('แก้ไขข้อมูลครู',`
+    <div class="form-group"><label>ชื่อ-นามสกุล</label><input id="mt-name" value="${t.name}"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Username</label><input id="mt-user" value="${t.username}"></div>
+      <div class="form-group"><label>Password ใหม่</label><input id="mt-pass" placeholder="เว้นว่างถ้าไม่เปลี่ยน"></div>
+    </div>
+    <div class="form-group"><label>บทบาท</label><select id="mt-role" onchange="toggleHomeroomSel()">${roleOptions(t.role)}</select></div>
+    <div class="form-group" id="mt-cls-group" style="display:${t.role==='homeroom'?'block':'none'}">
+      <label><i class="fa-solid fa-house-chimney-user"></i> ห้องที่ดูแล</label>
+      <select id="mt-cls">${teacherClsOptions(t.homeroom_classroom_id)}</select>
+    </div>
+    <button class="btn btn-primary w100 mt-1" onclick="submitEditTeacher('${id}')"><i class="fa-solid fa-floppy-disk"></i> บันทึก</button>`);
+}
+async function submitEditTeacher(id) {
+  const r=await apiPost('updateTeacher',{teacher_id:id,name:document.getElementById('mt-name').value.trim(),username:document.getElementById('mt-user').value.trim(),password:document.getElementById('mt-pass').value,role:document.getElementById('mt-role').value,homeroom_classroom_id:document.getElementById('mt-cls')?.value||''});
+  if (r.ok){closeModalDirect();toast('แก้ไขสำเร็จ','success');renderTeachersManage();}
+  else toast(r.error,'error');
+}
+async function delTeacher(id,name) {
+  if (!confirm(`ลบครู "${name}" ออกจากระบบ?`)) return;
+  const r=await apiPost('deleteTeacher',{teacher_id:id});
+  if (r.ok){toast('ลบสำเร็จ','success');renderTeachersManage();}
+  else toast(r.error,'error');
+}
+
+// ============================================================
+//  IMAGE UPLOAD
+// ============================================================
+async function uploadImageFile(input, targetInputId, previewId) {
+  const file = input.files[0];
+  if (!file) return;
+
+  // ตรวจขนาด — ไม่เกิน 5MB
+  if (file.size > 5 * 1024 * 1024) {
+    toast('รูปภาพต้องไม่เกิน 5MB ค่ะ', 'error');
+    return;
+  }
+
+  // แสดง loading
+  const preview = document.getElementById(previewId);
+  if (preview) preview.innerHTML = `<div style="display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:var(--text-l);margin-top:.4rem"><i class="fa-solid fa-spinner fa-spin" style="color:var(--pink)"></i> กำลังอัปโหลด...</div>`;
+
+  // แปลงเป็น base64
+  const base64Data = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  const r = await apiPost('uploadImage', {
+    fileName: file.name,
+    mimeType: file.type,
+    base64Data,
+  });
+
+  if (!r.ok) {
+    toast(r.error || 'อัปโหลดไม่สำเร็จ', 'error');
+    if (preview) preview.innerHTML = '';
+    return;
+  }
+
+  // ใส่ URL ลงในช่อง input
+  const targetInput = document.getElementById(targetInputId);
+  if (targetInput) targetInput.value = r.url;
+
+  // แสดง preview
+  if (preview) {
+    preview.innerHTML = `
+      <div style="margin-top:.5rem;position:relative;display:inline-block">
+        <img src="${r.url}" style="max-width:100%;max-height:140px;border-radius:var(--radius-xs);object-fit:cover;border:1.5px solid var(--gray-200)">
+        <span style="position:absolute;top:4px;right:4px;background:var(--mint-l);color:var(--mint-d);font-size:.72rem;padding:1px 6px;border-radius:10px;font-weight:600"><i class="fa-solid fa-check"></i> อัปโหลดแล้ว</span>
+      </div>`;
+  }
+  toast('อัปโหลดรูปสำเร็จ ✓', 'success');
+}
+
+// ============================================================
+//  MONSTER GAMIFICATION ENGINE
+// ============================================================
+const MONSTERS = [
+  {id:'m01',name:'อะโวค้างคาว',e:'🦇',desc:'ค้างคาวที่ขาเป็นอะโวคาโด'},
+  {id:'m02',name:'ปลาบินมีขา',e:'🐟',desc:'ปลาสี่ขาที่บินได้'},
+  {id:'m03',name:'กบหน้าทุเรียน',e:'🐸',desc:'กบที่หัวเป็นทุเรียน'},
+  {id:'m04',name:'แมงกะพรุนม้า',e:'🦄',desc:'ม้าที่ลอยได้ในอากาศ'},
+  {id:'m05',name:'หมูนอทิลุส',e:'🐷',desc:'หมูที่ว่ายน้ำด้วยเปลือกหอย'},
+  {id:'m06',name:'จระเข้ปีกผีเสื้อ',e:'🐊',desc:'จระเข้ที่บินได้'},
+  {id:'m07',name:'ช้างดำน้ำ',e:'🐘',desc:'ช้างที่ดำน้ำเก่งที่สุดในโลก'},
+  {id:'m08',name:'มังกรขนฟู',e:'🐲',desc:'มังกรที่มีขนนุ่มๆ ทั้งตัว'},
+  {id:'m09',name:'หอยทากจรวด',e:'🐌',desc:'หอยทากที่เร็วกว่าเสียง'},
+  {id:'m10',name:'กุ้งช้างแมว',e:'🦐',desc:'กุ้งที่มีหัวเป็นแมว'},
+  {id:'m11',name:'ปูบินได้',e:'🦀',desc:'ปูที่ใช้ก้ามบินในอากาศ'},
+  {id:'m12',name:'เพนกวินยีราฟ',e:'🐧',desc:'เพนกวินคอยาวผิดธรรมชาติ'},
+  {id:'m13',name:'แรดสายรุ้ง',e:'🦏',desc:'แรดที่เขาเปลี่ยนสีทุกวัน'},
+  {id:'m14',name:'ตะขาบเมฆ',e:'🐛',desc:'ตะขาบที่ลอยอยู่บนเมฆ'},
+  {id:'m15',name:'นกแก้วนักสืบ',e:'🦜',desc:'นกแก้วที่แต่งตัวเป็นนักสืบ'},
+  {id:'m16',name:'วาฬบก',e:'🐋',desc:'วาฬที่อาศัยบนบก'},
+  {id:'m17',name:'กวางสองหัว',e:'🦌',desc:'กวางที่คิดสองเรื่องพร้อมกัน'},
+  {id:'m18',name:'แมวเก้าหาง',e:'🐈',desc:'แมวที่มีหางเก้าเส้นจริงๆ'},
+  {id:'m19',name:'หมีขั้วโลกร้อน',e:'🐻',desc:'หมีขั้วโลกที่ชอบทะเลทราย'},
+  {id:'m20',name:'จิงโจ้บิน',e:'🦘',desc:'จิงโจ้ที่ใช้หางกระโดดขึ้นฟ้า'},
+];
+
+const HATCH_EVERY = 5; // ส่งงานทุก 5 ชิ้นได้มอนสเตอร์ 1 ตัว
+
+// Seeded random — ใช้ student_id + ลำดับที่ได้ ทำให้สุ่มได้ไม่ซ้ำกันแต่คงที่
+function seededRandom(seed) {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) {
+    h = (Math.imul(31, h) + seed.charCodeAt(i)) | 0;
+  }
+  return ((h >>> 0) / 4294967296);
+}
+
+function getMonsterForStudent(studentId, index) {
+  const seed = studentId + '_' + index;
+  const r = seededRandom(seed);
+  return MONSTERS[Math.floor(r * MONSTERS.length)];
+}
+
+function getStudentMonsters(studentId, submittedCount) {
+  const count = Math.floor(submittedCount / HATCH_EVERY);
+  const monsters = [];
+  const usedIds = new Set();
+  for (let i = 0; i < count; i++) {
+    let mon = getMonsterForStudent(studentId, i);
+    // หลีกเลี่ยงซ้ำกันในสวนเดียว (ถ้า monster pool ไม่พอก็ยอมซ้ำ)
+    let attempts = 0;
+    while (usedIds.has(mon.id) && attempts < MONSTERS.length) {
+      mon = getMonsterForStudent(studentId, i * 100 + attempts);
+      attempts++;
+    }
+    usedIds.add(mon.id);
+    monsters.push(mon);
+  }
+  return monsters;
+}
+
+function renderMonsterGarden(studentId, submittedCount) {
+  const monsters = getStudentMonsters(studentId, submittedCount);
+  const field = document.getElementById('my-garden-field');
+  const hatchInfo = document.getElementById('egg-hatch-info');
+
+  if (!field) return;
+  field.innerHTML = monsters.length
+    ? monsters.map(m=>`
+        <div class="mon-item" title="${m.name}: ${m.desc}">
+          <span class="mon-emoji" onclick="showMonsterInfo('${m.id}')">${m.e}</span>
+          <div class="mon-label">${m.name}</div>
+        </div>`).join('')
+    : '<div class="garden-field-empty">ส่งงาน 5 ชิ้นแรกเพื่อฟักไข่มอนสเตอร์ตัวแรก! 🥚</div>';
+
+  // แถบไข่กำลังฟัก
+  const progress = submittedCount % HATCH_EVERY;
+  const needed = HATCH_EVERY - progress;
+  if (hatchInfo && submittedCount >= 0) {
+    hatchInfo.classList.remove('hidden');
+    hatchInfo.style.display = 'flex';
+    document.getElementById('egg-hatch-fill').style.width = (progress/HATCH_EVERY*100)+'%';
+    document.getElementById('egg-hatch-count').textContent = `${progress}/${HATCH_EVERY}`;
+    document.getElementById('egg-hatch-label').textContent =
+      needed === HATCH_EVERY
+        ? `ส่งงานอีก ${HATCH_EVERY} ชิ้นเพื่อฟักมอนสเตอร์ตัวต่อไป!`
+        : `ส่งงานอีก ${needed} ชิ้นจะได้มอนสเตอร์ใหม่!`;
+  }
+
+  // Collection tab
+  renderMonsterCollection(studentId, submittedCount);
+}
+
+function renderMonsterCollection(studentId, submittedCount) {
+  const myMonsters = getStudentMonsters(studentId, submittedCount);
+  const myIds = new Set(myMonsters.map(m=>m.id));
+  const grid = document.getElementById('mon-collection-grid');
+  if (!grid) return;
+  grid.innerHTML = MONSTERS.map(m=>`
+    <div class="mon-card ${myIds.has(m.id)?'unlocked':'locked'}" title="${m.desc}">
+      <div style="font-size:1.6rem">${myIds.has(m.id)?m.e:'🥚'}</div>
+      <div style="font-size:.7rem;font-weight:500;margin-top:.2rem;color:var(--text-m)">${myIds.has(m.id)?m.name:'???'}</div>
+      ${myIds.has(m.id)?`<div style="font-size:.6rem;color:var(--text-l);margin-top:.1rem">ได้แล้ว!</div>`:''}
+    </div>`).join('');
+}
+
+function showMonsterInfo(mId) {
+  const m = MONSTERS.find(x=>x.id===mId);
+  if (!m) return;
+  openModal(`${m.e} ${m.name}`, `
+    <div class="text-center" style="padding:1rem 0">
+      <div style="font-size:4rem;margin-bottom:.5rem">${m.e}</div>
+      <div class="bold mb-1">${m.name}</div>
+      <div class="text-sm text-muted">${m.desc}</div>
+    </div>
+    <button class="btn btn-primary w100 mt-2" onclick="closeModalDirect()">ปิด</button>`);
+}
+
+function switchGardenTab(tab, btn) {
+  document.getElementById('garden-tab-garden').classList.toggle('hidden', tab!=='garden');
+  document.getElementById('garden-tab-collection').classList.toggle('hidden', tab!=='collection');
+  document.querySelectorAll('.garden-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ============================================================
+//  STUDENT SIDE
+// ============================================================
+async function initStudent() {
+  const r=await api('getStudentDashboard',{student_id:state.student.student_id});
+  if (!r.ok) return;
+
+  // คำนวณจำนวนงานที่ส่งแล้วทั้งหมด (ทุกวิชา)
+  const totalSubmitted = r.subjects.reduce((s,sub)=>s+sub.submitted_count,0);
+  renderMonsterGarden(state.student.student_id, totalSubmitted);
+
+  const el=document.getElementById('stu-subject-cards');
+  if (!r.subjects.length){
+    el.innerHTML=`<div class="empty-state"><i class="fa-solid fa-book-open"></i><p>ยังไม่มีวิชาในระบบ</p></div>`;
+    return;
+  }
+  el.innerHTML=r.subjects.map((s,i)=>`
+    <div class="subject-card ${COLORS[i%5]}" onclick="openStudentSubject('${s.subject_id}','${s.subject_name}')">
+      <div class="subject-icon ${COLORS[i%5]}"><i class="fa-solid ${SUBJECT_ICONS[i%8]}"></i></div>
+      <div class="bold mb-1">${s.subject_name}</div>
+      <div class="text-xs text-muted mb-2">${s.subject_code} &nbsp;·&nbsp; ${s.assignment_count} ภาระงาน</div>
+      <div class="progress-wrap"><div class="progress-bar pink" style="width:${s.progress_pct}%"></div></div>
+      <div class="flex justify-between text-xs text-muted mt-1">
+        <span>ส่งแล้ว ${s.submitted_count}/${s.assignment_count}</span>
+        <span>${s.progress_pct}%</span>
+      </div>
+    </div>`).join('');
+}
+
+async function openStudentSubject(subId,subName){
+  state.currentStudentSubjectId=subId;
+  document.getElementById('stu-home').classList.add('hidden');
+  document.getElementById('stu-subject-detail').classList.remove('hidden');
+  document.getElementById('stu-asn-preview').classList.add('hidden');
+  document.getElementById('stu-sub-breadcrumb').textContent=subName;
+
+  const r=await api('getAssignmentDetail',{assignment_id:'',subject_id:subId});
+  // load all assignments for subject + my scores
+  const ra=await api('getAssignments',{subject_id:subId});
+  const rs=await api('getScores',{student_id:state.student.student_id});
+  const asns=ra.data||[];
+  const scores=rs.data||[];
+
+  const submitted=scores.filter(sc=>asns.some(a=>a.assignment_id===sc.assignment_id)&&sc.status!=='not_submitted').length;
+  const pct=asns.length>0?Math.round((submitted/asns.length)*100):0;
+  document.getElementById('stu-progress-bar').style.width=pct+'%';
+  document.getElementById('stu-progress-label').textContent=`ส่งแล้ว ${submitted} / ${asns.length} ภาระงาน (${pct}%)`;
+
+  document.getElementById('stu-asn-list').innerHTML=asns.length?asns.map((a,i)=>{
+    const sc=scores.find(s=>s.assignment_id===a.assignment_id)||{status:'not_submitted'};
+    return `<div class="stu-asn-item" onclick="openStuAsnPreview('${a.assignment_id}','${encodeURIComponent(a.title)}')">
+      <div class="stu-asn-icon ${sc.status}"><i class="fa-solid ${STATUS_ICONS[sc.status]}"></i></div>
+      <div style="flex:1;min-width:0">
+        <div class="bold text-sm">${a.title}</div>
+        <div class="text-xs text-muted">${a.due_date?'กำหนดส่ง: '+a.due_date:''}</div>
+      </div>
+      <span class="badge badge-${sc.status}">${STATUS_LABELS[sc.status]}</span>
+      <i class="fa-solid fa-chevron-right text-muted"></i>
+    </div>`;}).join('')
+  :`<div class="empty-state"><i class="fa-solid fa-clipboard"></i><p>ยังไม่มีภาระงาน</p></div>`;
+}
+
+async function openStuAsnPreview(asnId,encodedTitle){
+  const title=decodeURIComponent(encodedTitle);
+  const r=await api('getAssignmentDetail',{assignment_id:asnId});
+  if (!r.ok) return;
+  const a=r.assignment;
+  const sc=r.rows.find(row=>row.student_id===state.student.student_id)||{status:'not_submitted'};
+  const inds=r.indicators.map(ind=>`<div class="ind-tag"><i class="fa-solid fa-tag"></i>${ind.indicator_text}</div>`).join('');
+  let mediaHtml='';
+  if (a.image_url) mediaHtml+=`<div class="media-preview"><img src="${a.image_url}" alt="ตัวอย่าง"></div>`;
+  if (a.link_url) mediaHtml+=`<div class="link-preview" onclick="window.open('${a.link_url}','_blank')"><i class="fa-solid fa-arrow-up-right-from-square"></i> เปิดลิงค์ตัวอย่าง: ${a.link_url}</div>`;
+  document.getElementById('stu-asn-breadcrumb').textContent=title;
+  document.getElementById('stu-asn-detail-content').innerHTML=`
+    <div class="sec-title mb-2"><i class="fa-solid fa-clipboard-check"></i> ${a.title}</div>
+    <div class="flex items-center gap-1 mb-2"><span class="badge badge-${sc.status}">${STATUS_LABELS[sc.status]}</span>
+      ${a.due_date?`<span class="text-xs text-muted"><i class="fa-solid fa-calendar"></i> กำหนดส่ง: ${a.due_date}</span>`:''}
+    </div>
+    ${a.description?`<p class="text-sm text-m mb-2">${a.description}</p>`:''}
+    ${inds?`<div class="mb-2">${inds}</div>`:''}
+    ${mediaHtml||'<p class="text-sm text-muted"><i class="fa-solid fa-image"></i> ยังไม่มีรูปหรือลิงค์ตัวอย่าง</p>'}`;
+  document.getElementById('stu-asn-preview').classList.remove('hidden');
+  document.getElementById('stu-asn-preview').scrollIntoView({behavior:'smooth'});
+}
+
+function backToStudentHome(){
+  document.getElementById('stu-home').classList.remove('hidden');
+  document.getElementById('stu-subject-detail').classList.add('hidden');
+}
+function backToStuSubject(){
+  document.getElementById('stu-asn-preview').classList.add('hidden');
+}
+
+// ========== INIT ==========
+(function() {
+  document.querySelectorAll('.page').forEach(p => { p.style.display='none'; p.classList.remove('active'); });
+  document.getElementById('topbar').style.display = 'none';
+  const footer = document.getElementById('app-footer');
+  if (footer) footer.style.display = 'none';
+  const login = document.getElementById('page-login');
+  login.style.display = 'flex';
+  login.classList.add('active');
+  document.getElementById('t-pass').onkeydown = e => { if(e.key==='Enter') doTeacherLogin(); };
+  document.getElementById('s-code').onkeydown = e => { if(e.key==='Enter') doStudentLogin(); };
+  document.getElementById('modal-overlay').onclick = closeModal;
+})();
+
+</script>
+</body>
+</html>
